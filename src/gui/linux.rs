@@ -135,11 +135,12 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
         });
 
         //Show the dialog while executing callbacks from the worker thread
-        //Use unsafe to marshal the mutex reference into the callback (which requires a 'static lifetime)
+        //Use unsafe to marshal references into the callback (which requires a 'static lifetime)
         unsafe {
             struct ProgressRefs<'a>(&'a Mutex<ProgressState>, &'a Label, &'a ProgressBar);
             let prog_refs = ProgressRefs(prog_state, &progress_label, &progress_bar);
             let prog_refs = std::mem::transmute::<ProgressRefs::<'_>, ProgressRefs::<'static>>(prog_refs);
+
             dialog.add_tick_callback(move |dialog, _| {
                 //Check if the state is dirty
                 //If yes, update widgets
@@ -151,6 +152,7 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
                 }
 
                 //Check if the worker thread is done
+                //If yes, close the dialog
                 if prog_state.done {
                     dialog.response(ResponseType::Close);
                 }
@@ -159,7 +161,7 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
             });
 
             dialog.show_all();
-            dialog.run(); //The callback can only be invoked through this method, so the above transmute is safe
+            dialog.run(); //The tick callback can only be invoked through this method, so the above transmute is safe
         }
 
         //Set the cancel flag
