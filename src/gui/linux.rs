@@ -39,7 +39,7 @@ pub fn show_error_msgbox(error_msg: &str) -> Result<(), Box<dyn Error>>{
     init_gtk()?;
 
     //Create the dialog box
-    let dialog = MessageDialog::new(None::<&gtk::Window>, DialogFlags::MODAL, MessageType::Error, ButtonsType::Close, &error_msg);
+    let dialog = MessageDialog::new(None::<&gtk::Window>, DialogFlags::MODAL, MessageType::Error, ButtonsType::Close, error_msg);
     set_window_wmclass(dialog.upcast_ref());
     dialog.set_title(&format!("{GUI_APP_NAME} Error"));
     
@@ -120,12 +120,10 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
                     self.0.lock().unwrap().done = true;
                 }
             }
-            let _pill = PoisonPill(&prog_state);
+            let _pill = PoisonPill(prog_state);
 
             //Run the action
-            let ret = action(&ProgressDialog {
-                state: &prog_state
-            });
+            let ret = action(&ProgressDialog { state: prog_state });
 
             if !prog_state.lock().unwrap().cancelled {
                 Some(ret)

@@ -12,12 +12,12 @@ use gui::*;
 
 #[cfg(not(feature="testapp"))]
 //Contains the placeholder string (sha256 of foobar), which is replaced by Microsoft.NET.HostModel.HostWriter on build
-const APP_BINARY_PATH: &'static str = "c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2";
+const APP_BINARY_PATH: &str = "c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2";
 
 #[cfg(feature="testapp")]
-const APP_BINARY_PATH: &'static str = "Test.dll";
+const APP_BINARY_PATH: &str = "Test.dll";
 
-const ERROR_MSG_HEADER: &'static str = 
+const ERROR_MSG_HEADER: &str = 
 r#"An error occurred while trying to prepare Everest for startup.
 Please report this in the Celeste discord server!
 (https://discord.gg/celeste, channel #modding_help)

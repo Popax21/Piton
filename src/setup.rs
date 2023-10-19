@@ -53,7 +53,7 @@ impl From<AsyncSetupError> for SetupError {
     fn from(value: AsyncSetupError) -> Self {
         match value {
             AsyncSetupError::DownloadError(err) => Self::DownloadError(err),
-            AsyncSetupError::DownloadHashMismatch(expected, actual) => Self::DownloadHashMismatch{ expected: expected, actual: actual },
+            AsyncSetupError::DownloadHashMismatch(expected, actual) => Self::DownloadHashMismatch{ expected, actual },
             AsyncSetupError::DecompressError(err) => Self::DecompressError(err),
             AsyncSetupError::FinalizationError(err) => Self::FinalizationError(err)
         }
@@ -84,7 +84,7 @@ pub fn setup_runtime(target_id: &str, runtime_descr: &RuntimeDescriptor, runtime
         if dialog.is_cancelled() { return Ok(()); }
 
         //Validate the hash
-        let runtime_hash: &[u8] = &*Sha512::digest(&runtime_data);
+        let runtime_hash: &[u8] = &Sha512::digest(&runtime_data);
         if !runtime_descr.download_sha512.eq(runtime_hash) {
             let expected_hash = hex::encode(runtime_descr.download_sha512);
             let actual_hash = hex::encode(runtime_hash);
@@ -95,8 +95,8 @@ pub fn setup_runtime(target_id: &str, runtime_descr: &RuntimeDescriptor, runtime
 
         //Decompress it
         match runtime_descr.download_format {
-            RuntimeDownloadFormat::TarGz => decompress_targz_runtime(&dialog, &runtime_dir, &runtime_data).map_err(AsyncSetupError::DecompressError)?,
-            RuntimeDownloadFormat::Zip =>  decompress_zip_runtime(&dialog, &runtime_dir, &runtime_data).map_err(AsyncSetupError::DecompressError)?
+            RuntimeDownloadFormat::TarGz => decompress_targz_runtime(dialog, runtime_dir, &runtime_data).map_err(AsyncSetupError::DecompressError)?,
+            RuntimeDownloadFormat::Zip =>  decompress_zip_runtime(dialog, runtime_dir, &runtime_data).map_err(AsyncSetupError::DecompressError)?
         }
         if dialog.is_cancelled() { return Ok(()); }
 
@@ -160,7 +160,7 @@ fn decompress_targz_runtime(dialog: &ProgressDialog, runtime_dir: &Path, data: &
     fs::create_dir_all(runtime_dir)?;
     
     //Initialize the progress bar
-    dialog.set_progress(format!("Determining archive size"), 0_f64);
+    dialog.set_progress("Determining archive size", 0_f64);
 
     let mut archive = tar::Archive::new(GzDecoder::new(Cursor::new(data)));
     let num_entries = archive.entries()?.count();

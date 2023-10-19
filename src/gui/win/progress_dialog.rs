@@ -139,12 +139,10 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
                     self.0.lock().unwrap().done = true;
                 }
             }
-            let _pill = PoisonPill(&prog_state);
+            let _pill = PoisonPill(prog_state);
 
             //Run the action
-            let ret = action(&ProgressDialog {
-                state: &prog_state
-            });
+            let ret = action(&ProgressDialog { state: prog_state });
 
             if !prog_state.lock().unwrap().cancelled {
                 Some(ret)

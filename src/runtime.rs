@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::{Path, PathBuf}, error::Error, fs, ffi::OsString, io};
+use std::{collections::HashMap, path::{Path, PathBuf}, error::Error, fs, io};
 
 use serde::Deserialize;
 use netcorehost::{nethost, pdcstring::PdCString};
@@ -74,15 +74,15 @@ pub fn check_runtime_install(runtime_dir: &Path, runtime_descr: &RuntimeDescript
     let mut dir_id_split = dir_id_str.split_ascii_whitespace();
     let Some(dir_target_id) = dir_id_split.next() else { return RuntimeCheckResult::IDParseError; };
     let Some(dir_runtime_ver) = dir_id_split.next() else { return RuntimeCheckResult::IDParseError; };
-    if let Some(_) = dir_id_split.next() { return RuntimeCheckResult::IDParseError; }
+    if dir_id_split.next().is_some() { return RuntimeCheckResult::IDParseError; }
 
     //Check for compatibility
     if dir_target_id != target_id {
-        return RuntimeCheckResult::WrongTarget(String::from(dir_target_id));
+        RuntimeCheckResult::WrongTarget(String::from(dir_target_id))
     } else if dir_runtime_ver != runtime_descr.version {
-        return RuntimeCheckResult::WrongVersion(String::from(dir_runtime_ver));
+        RuntimeCheckResult::WrongVersion(String::from(dir_runtime_ver))
     } else {
-        return RuntimeCheckResult::Compatible
+        RuntimeCheckResult::Compatible
     }
 }
 
@@ -101,7 +101,7 @@ pub fn launch_app_binary(runtime_dir: &Path, app_bin_path: &Path, args: &[&str])
     let ctx = hostfxr.initialize_for_dotnet_command_line_with_args_and_dotnet_root(&args.iter().map(PdCString::as_ref).collect::<Vec<_>>(), dotnet_root)?;
 
     //Add the runtime root to the path (in case anything tries to run dotnet directly)
-    let path_var = std::env::var_os("PATH").unwrap_or(OsString::default());
+    let path_var = std::env::var_os("PATH").unwrap_or_default();
     let mut path = std::env::split_paths(&path_var).collect::<Vec<_>>();
     path.insert(0, PathBuf::from(runtime_dir));
     std::env::set_var("PATH", std::env::join_paths(path)?);
