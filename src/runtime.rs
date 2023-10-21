@@ -3,6 +3,9 @@ use std::{collections::HashMap, path::{Path, PathBuf}, error::Error, fs, io};
 use serde::Deserialize;
 use netcorehost::{nethost, pdcstring::PdCString};
 
+#[derive(Deserialize, Debug, Clone, Copy)]
+pub struct Sha512Hash(#[serde(with="hex::serde")] pub [u8; 64]);
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct RuntimeDescriptor {
     #[serde(rename="version")]
@@ -11,8 +14,8 @@ pub struct RuntimeDescriptor {
     #[serde(rename="download")]
     pub download_url: String,
 
-    #[serde(rename="download-sha512", with="hex::serde")]
-    pub download_sha512: [u8; 64],
+    #[serde(rename="download-sha512")]
+    pub download_sha512: Option<Sha512Hash>,
 
     #[serde(rename="download-format")]
     pub download_format: RuntimeDownloadFormat

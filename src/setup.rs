@@ -84,14 +84,18 @@ pub fn setup_runtime(target_id: &str, runtime_descr: &RuntimeDescriptor, runtime
         if act.is_cancelled() { return Ok(()); }
 
         //Validate the hash
-        let runtime_hash: &[u8] = &Sha512::digest(&runtime_data);
-        if !runtime_descr.download_sha512.eq(runtime_hash) {
-            let expected_hash = hex::encode(runtime_descr.download_sha512);
-            let actual_hash = hex::encode(runtime_hash);
-            log!("Unexpected download hash: {} != {}", expected_hash, actual_hash);
-            return Err(AsyncSetupError::DownloadHashMismatch(expected_hash, actual_hash));
+        if let Some(download_hash) = runtime_descr.download_sha512 {
+            let runtime_hash: &[u8] = &Sha512::digest(&runtime_data);
+            if !download_hash.0.eq(runtime_hash) {
+                let expected_hash = hex::encode(download_hash.0);
+                let actual_hash = hex::encode(runtime_hash);
+                log!("Unexpected download hash: {} != {}", expected_hash, actual_hash);
+                return Err(AsyncSetupError::DownloadHashMismatch(expected_hash, actual_hash));
+            }
+            log!("Downloaded runtime hash matches expected hash");
+        } else {
+            log!("Skipping has validation as no expected hash has been specified")
         }
-        log!("Downloaded runtime hash matches expected hash");
 
         //Decompress it
         match runtime_descr.download_format {
