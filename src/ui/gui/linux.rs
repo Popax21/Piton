@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::ops::Deref;
 use std::sync::{Mutex, OnceLock};
 use std::thread::{self, ThreadId};
 
@@ -8,7 +7,8 @@ use gtk::glib::{ControlFlow, BoolError};
 use gtk::{prelude::*, Dialog, Label, Orientation, ProgressBar, Window, ResponseType};
 use gtk::{DialogFlags, MessageDialog, MessageType, ButtonsType};
 
-use crate::cfg::GUI_APP_NAME;
+use crate::cfg::UI_APP_NAME;
+use crate::ui::ProgressAction;
 
 fn init_gtk() -> Result<(), BoolError> {
     static GTK_INIT_LOCK: OnceLock<Result<ThreadId, BoolError>> = OnceLock::new();
@@ -16,7 +16,7 @@ fn init_gtk() -> Result<(), BoolError> {
     //Ensure GTK is only initialized once
     let gtk_main_thread = GTK_INIT_LOCK.get_or_init(|| {
         gtk::init()?;
-        gtk::glib::set_prgname(Some(GUI_APP_NAME));
+        gtk::glib::set_prgname(Some(UI_APP_NAME));
         Ok(thread::current().id())
     }).clone()?;
 
@@ -41,7 +41,7 @@ pub fn show_error_msgbox(error_msg: &str) -> Result<(), Box<dyn Error>>{
     //Create the dialog box
     let dialog = MessageDialog::new(None::<&gtk::Window>, DialogFlags::MODAL, MessageType::Error, ButtonsType::Close, error_msg);
     set_window_wmclass(dialog.upcast_ref());
-    dialog.set_title(&format!("{GUI_APP_NAME} Error"));
+    dialog.set_title(&format!("{UI_APP_NAME} - Error"));
     
     //Show the dialog box
     dialog.connect_response(|_, _| gtk::main_quit());
@@ -61,29 +61,29 @@ struct ProgressState {
     fract: f64
 }
 
-pub struct ProgressDialog<'d> where Self: 'd {
-    state: &'d Mutex<ProgressState>
+pub struct LinuxProgressAction<'a> {
+    state: &'a Mutex<ProgressState>
 }
 
-impl<'d> ProgressDialog<'d> {
-    pub fn set_progress(&self, txt: impl Deref<Target=str> + Send + 'd, fract: f64) {
+impl ProgressAction for LinuxProgressAction<'_> {
+    fn set_progress(&self, txt: &str, fract: f64) {
         //Update the progress state
         let mut state = self.state.lock().unwrap();
         state.dirty = true;
-        state.text = String::from(txt.deref());
+        state.text = String::from(txt);
         state.fract = fract;
     }
  
-    pub fn is_cancelled(&self) -> bool { self.state.lock().unwrap().cancelled }
+    fn is_cancelled(&self) -> bool { self.state.lock().unwrap().cancelled }
 }
 
-pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDialog) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {
+pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&LinuxProgressAction) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {
     init_gtk()?;
 
     //Create the dialog GUI
     let dialog = Dialog::new();
     set_window_wmclass(dialog.upcast_ref());
-    dialog.set_title(GUI_APP_NAME);
+    dialog.set_title(UI_APP_NAME);
     dialog.set_size_request(400, 0);
     dialog.set_resizable(false);
 
@@ -123,7 +123,7 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
             let _pill = PoisonPill(prog_state);
 
             //Run the action
-            let ret = action(&ProgressDialog { state: prog_state });
+            let ret = action(&LinuxProgressAction { state: prog_state });
 
             if !prog_state.lock().unwrap().cancelled {
                 Some(ret)

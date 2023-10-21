@@ -2,15 +2,15 @@
 
 use std::{process::ExitCode, fs, path::PathBuf, io};
 
+
 mod cfg;
 mod runtime;
 mod setup;
-mod gui;
+mod ui;
 
 use cfg::*;
 use runtime::*;
 use setup::*;
-use gui::*;
 
 #[cfg(not(feature="testapp"))]
 //Contains the placeholder string (sha256 of foobar), which is replaced by Microsoft.NET.HostModel.HostWriter on build
@@ -23,12 +23,19 @@ macro_rules! handle_error {
     ($res:expr, $($msg_arg:expr),+) => {
         match $res {
             Ok(v) => v,
-            Err(e) => {
-                let err_msg = format!($($msg_arg),+);
+            Err(err) => {
+                let msg = format!($($msg_arg),+);
                 eprintln!("Piton encountered an error while setting up the .NET runtime:");
-                eprintln!("{}: {e:?}", err_msg);
+                eprintln!("{}: {err:?}", msg);
 
-                show_error_msgbox(&format!("{ERROR_MSG_HEADER}{err_msg}:\n{e}")).expect("failed to open the error message box");
+                let err_msg: String;
+                if UI_ERRORMSG_HEADER.len() > 0 {
+                    err_msg = format!("{UI_ERRORMSG_HEADER}\n\n{msg}:\n{err}");
+                } else {
+                    err_msg = format!("{msg}:\n{err}");
+                }
+                ui::show_error_msg(&err_msg);
+
                 return ExitCode::FAILURE;
             }
         }
@@ -45,7 +52,7 @@ macro_rules! run_app_binary {
 
 fn main() -> ExitCode {
     //Handle PITON_WIN_CONSOLE on Windows
-    #[cfg(target_os = "windows")]
+    #[cfg(all(target_os = "windows", feature = "gui"))]
     if let Ok(console_env) = std::env::var("PITON_WIN_CONSOLE") {
         unsafe {
             match &console_env {
@@ -105,15 +112,16 @@ fn main() -> ExitCode {
     //Set up the runtime
     let runtime_setup_res = setup_runtime(&target_id, &runtime_descr, &runtime_dir);
     match runtime_setup_res {
-        Err(SetupError::DownloadServerUnreachable(_, _)) => {
-            let Err(err) = runtime_setup_res else { unreachable!(); };
-            show_error_msgbox(&format!(r#"
-Failed to download the .NET {ver} runtime.
+        Err(SetupError::DownloadServerUnreachable { server, error: err }) => {
+            ui::show_error_msg(&format!(
+r#"Failed to download the .NET runtime.
+The download server '{server}' could not be reached.
 Please ensure you are connected to the internet, then try again.
 
 Detailed error information:
-{err}
-            "#, ver=runtime_descr.version)).expect("failed to open the error message box");
+{err}"#
+            ));
+            return ExitCode::FAILURE;
         }
         Err(SetupError::Cancelled) => { return ExitCode::SUCCESS; }
         r => { handle_error!(r, "Failed to set up the .NET runtime"); }

@@ -1,8 +1,8 @@
-use std::{ops::Deref, sync::{OnceLock, Mutex}, mem::{self}, error::Error, borrow::Cow, process::abort, ffi::c_void, thread};
+use std::{sync::{OnceLock, Mutex}, mem::{self}, error::Error, borrow::Cow, process::abort, ffi::c_void, thread};
 
 use windows::{Win32::{UI::{Controls::{INITCOMMONCONTROLSEX, InitCommonControlsEx, ICC_PROGRESS_CLASS, PROGRESS_CLASS, PBM_SETPOS, PBM_SETRANGE}, WindowsAndMessaging::{WS_CAPTION, WS_POPUP, WS_SYSMENU, DS_MODALFRAME, DialogBoxIndirectParamA, WS_VISIBLE, WS_CHILD, GetDialogBaseUnits, GetSystemMetrics, SM_CYVSCROLL, WM_CLOSE, EndDialog, WM_INITDIALOG, SetWindowPos, SWP_NOZORDER, GetWindowRect, GetDesktopWindow, SWP_NOSIZE, SWP_NOACTIVATE, WM_GETDPISCALEDSIZE, WM_DPICHANGED, WINDOW_LONG_PTR_INDEX, SetWindowLongPtrW, DLGPROC, NONCLIENTMETRICSW, SPI_GETNONCLIENTMETRICS, SystemParametersInfoW, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, MSG, PeekMessageW, PM_REMOVE, GetWindowLongPtrW, GetDlgItem, WS_EX_COMPOSITED, SetTimer, WM_TIMER, SetWindowTextW, SendMessageA}}, System::{LibraryLoader::GetModuleHandleA, SystemServices::{SS_LEFT, SS_CENTER}}, Foundation::{LPARAM, WPARAM, HWND, RECT, SIZE, SetLastError, ERROR_SUCCESS, GetLastError, LRESULT}, Graphics::Gdi::{GetDC, ReleaseDC, DT_CALCRECT, DT_WORDBREAK, DrawTextW, HDC, RedrawWindow, HRGN, RDW_INVALIDATE, RDW_FRAME, RDW_ERASE, HFONT, DeleteObject, LOGFONTW, CreateFontIndirectW, SelectObject, HGDIOBJ, InvalidateRect}}, core::{PCSTR, HSTRING}};
 
-use crate::{cfg::GUI_APP_NAME, gui::win::{dialog_template::{build_dialog_template, DialogControl, DialogControlTitle, WindowClass}, dpi::{DPIAwarenessOverride, DPIAwarenessContext, DialogDPIChangeBehaviors}, WinError}};
+use crate::{cfg::UI_APP_NAME, ui::{gui::win::{dialog_template::{build_dialog_template, DialogControl, DialogControlTitle, WindowClass}, dpi::{DPIAwarenessOverride, DPIAwarenessContext, DialogDPIChangeBehaviors}, WinError}, ProgressAction}};
 
 use super::{layout::{ComponentLayout, WindowLayout, LayoutParams, LayoutRect}, dpi::DPIMetrics};
 
@@ -38,23 +38,23 @@ struct DialogWindow<'a> {
     progress_bar: ComponentLayout
 }
 
-pub struct ProgressDialog<'d> where Self: 'd {
-    state: &'d Mutex<ProgressState>
+pub struct WinProgressAction<'a> {
+    state: &'a Mutex<ProgressState>
 }
 
-impl<'d> ProgressDialog<'d> {
-    pub fn set_progress(&self, txt: impl Deref<Target=str> + Send + 'd, fract: f64) {
+impl ProgressAction for WinProgressAction<'_> {
+    fn set_progress(&self, txt: &str, fract: f64) {
         //Update the progress state
         let mut state = self.state.lock().unwrap();
         state.dirty = true;
-        state.text = String::from(txt.deref());
+        state.text = String::from(txt);
         state.fract = fract;
     }
  
-    pub fn is_cancelled(&self) -> bool { self.state.lock().unwrap().cancelled }
+    fn is_cancelled(&self) -> bool { self.state.lock().unwrap().cancelled }
 }
 
-pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDialog) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {
+pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&WinProgressAction) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {
     //Init common controls
     static CONTROL_INIT: OnceLock<bool> = OnceLock::new();
     if !CONTROL_INIT.get_or_init(|| {
@@ -93,7 +93,7 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
     let diag_template = build_dialog_template(
         &mut diag_template_buf,
         WindowClass::None,
-        GUI_APP_NAME,
+        UI_APP_NAME,
         (WS_POPUP | WS_CAPTION | WS_SYSMENU).0 | DS_MODALFRAME as u32,
         WS_EX_COMPOSITED.0, //Double buffered
         (0, 0),
@@ -142,7 +142,7 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
             let _pill = PoisonPill(prog_state);
 
             //Run the action
-            let ret = action(&ProgressDialog { state: prog_state });
+            let ret = action(&WinProgressAction { state: prog_state });
 
             if !prog_state.lock().unwrap().cancelled {
                 Some(ret)
@@ -185,13 +185,13 @@ pub fn run_progress_dialog<T: Send>(descr: &str, action: impl FnOnce(&ProgressDi
     Ok(ret?)
 }
 
-extern "system" fn progress_dialog_proc(dialog_wndw: HWND, msg: u32, _msg_param1: WPARAM, _msg_param2: LPARAM) -> isize {
+extern "system" fn progress_dialog_proc(window_handle: HWND, msg: u32, _msg_param1: WPARAM, _msg_param2: LPARAM) -> isize {
     const DWLP_USER: WINDOW_LONG_PTR_INDEX = WINDOW_LONG_PTR_INDEX((mem::size_of::<LRESULT>() + mem::size_of::<DLGPROC>()) as i32);
-    macro_rules! get_dialog_ref {
+    macro_rules! get_dialog_window {
         ($window:expr) => {
             unsafe {
                 let user_data: isize = GetWindowLongPtrW($window, DWLP_USER);
-                (user_data as *mut DialogWindow).as_mut().expect("dialog window has no ProgressDialog pointer attached")
+                (user_data as *mut DialogWindow).as_mut().expect("dialog window has no DialogWIndow pointer attached")
             }
         };
     }
@@ -202,34 +202,34 @@ extern "system" fn progress_dialog_proc(dialog_wndw: HWND, msg: u32, _msg_param1
                 //Set the progress dialog pointer
                 unsafe {
                     SetLastError(ERROR_SUCCESS);
-                    if SetWindowLongPtrW(dialog_wndw, DWLP_USER, _msg_param2.0) == 0 {
-                        GetLastError().expect("failed to set dialog ProgressDialog pointer");
+                    if SetWindowLongPtrW(window_handle, DWLP_USER, _msg_param2.0) == 0 {
+                        GetLastError().expect("failed to set dialog DialogWindow pointer");
                     }
                 }
-                let prog_diag = get_dialog_ref!(dialog_wndw);
+                let diag_window = get_dialog_window!(window_handle);
 
                 //Obtain control handles
                 macro_rules! get_control_handle {
                     ($id:expr) => {
                         unsafe {
-                            let handle = GetDlgItem(dialog_wndw, $id as i32);
+                            let handle = GetDlgItem(window_handle, $id as i32);
                             if handle == HWND::default() { panic!("failed to obtain dialog control handle"); }
                             handle
                         }
                     };
                 }
 
-                prog_diag.window_layout.handle = dialog_wndw;
-                prog_diag.descr_label.handle = get_control_handle!(IDC_DESCR_LABEL);
-                prog_diag.progress_label.handle = get_control_handle!(IDC_PROGRESS_LABEL);
-                prog_diag.progress_bar.handle = get_control_handle!(IDC_PROGRESS_BAR);
+                diag_window.window_layout.handle = window_handle;
+                diag_window.descr_label.handle = get_control_handle!(IDC_DESCR_LABEL);
+                diag_window.progress_label.handle = get_control_handle!(IDC_PROGRESS_LABEL);
+                diag_window.progress_bar.handle = get_control_handle!(IDC_PROGRESS_BAR);
 
-                prog_diag.init().expect("failed to initialize dialog layout");
+                diag_window.init().expect("failed to initialize dialog layout");
 
                 //If we are using Per-Monitor v2 DPI awareness, disable default dialog resizing
-                if prog_diag.dpi_override.get_awareness() == DPIAwarenessContext::PerMonitorAwareV2 {
+                if diag_window.dpi_override.get_awareness() == DPIAwarenessContext::PerMonitorAwareV2 {
                     DialogDPIChangeBehaviors::set_for(
-                        dialog_wndw,
+                        window_handle,
                         DialogDPIChangeBehaviors::ALL,
                         DialogDPIChangeBehaviors::ALL
                     ).expect("failed to set dialog DPI change behavior");
@@ -239,15 +239,15 @@ extern "system" fn progress_dialog_proc(dialog_wndw: HWND, msg: u32, _msg_param1
                 //Also calling it would require our own dialog window subclass for the template, so... eh
 
                 //Update and apply the window
-                let dpi = prog_diag.dpi_override.get_current_dpi(dialog_wndw).expect("failed to obtain initial DPI setting");
-                prog_diag.update_and_apply(dpi).expect("failed to update / apply dialog layout");
+                let dpi = diag_window.dpi_override.get_current_dpi(window_handle).expect("failed to obtain initial DPI setting");
+                diag_window.update_and_apply(dpi).expect("failed to update / apply dialog layout");
 
                 //Center the window on-screen
-                center_window(dialog_wndw).expect("failed to center dialog window");
+                center_window(window_handle).expect("failed to center dialog window");
 
                 //Set a timer to periodically check the progress state
                 unsafe {
-                    if SetTimer(dialog_wndw, 0, 1000 / 60, None) == 0 {
+                    if SetTimer(window_handle, 0, 1000 / 60, None) == 0 {
                         panic!("failed to set timer for dialog window: {:?}", WinError::from_win32());
                     }
                 };
@@ -255,15 +255,15 @@ extern "system" fn progress_dialog_proc(dialog_wndw: HWND, msg: u32, _msg_param1
                 1
             }
             WM_TIMER => {
-                let prog_diag = get_dialog_ref!(dialog_wndw);
-                let mut prog_state = prog_diag.state.lock().unwrap();
+                let diag_window = get_dialog_window!(window_handle);
+                let mut prog_state = diag_window.state.lock().unwrap();
 
                 //Check if the progress state was modified
                 //If yes, update controls and invalidate the window
                 if prog_state.dirty {
                     unsafe {
                         //Update the progress label
-                        SetWindowTextW(prog_diag.progress_label.handle, &HSTRING::from(&prog_state.text)).expect("failed to set progress label text");
+                        SetWindowTextW(diag_window.progress_label.handle, &HSTRING::from(&prog_state.text)).expect("failed to set progress label text");
 
                         //Update the progress bar
                         //Top MS design quality here: the bar will "smoothly animate" (=lag behind)
@@ -271,17 +271,17 @@ extern "system" fn progress_dialog_proc(dialog_wndw: HWND, msg: u32, _msg_param1
                         //We have to have a special case for when we hit 100% as well, as we need to temporarily extend the range in that case
                         let val = (prog_state.fract * 100_f64) as usize;
                         if val < 100 {
-                            SendMessageA(prog_diag.progress_bar.handle, PBM_SETPOS, WPARAM(val+1), LPARAM::default());
-                            SendMessageA(prog_diag.progress_bar.handle, PBM_SETPOS, WPARAM(val), LPARAM::default());
+                            SendMessageA(diag_window.progress_bar.handle, PBM_SETPOS, WPARAM(val+1), LPARAM::default());
+                            SendMessageA(diag_window.progress_bar.handle, PBM_SETPOS, WPARAM(val), LPARAM::default());
                         } else {
-                            SendMessageA(prog_diag.progress_bar.handle, PBM_SETRANGE, WPARAM::default(), LPARAM(101 << 16));
-                            SendMessageA(prog_diag.progress_bar.handle, PBM_SETPOS, WPARAM(101), LPARAM::default());
-                            SendMessageA(prog_diag.progress_bar.handle, PBM_SETPOS, WPARAM(100), LPARAM::default());
-                            SendMessageA(prog_diag.progress_bar.handle, PBM_SETRANGE, WPARAM::default(), LPARAM(100 << 16));
+                            SendMessageA(diag_window.progress_bar.handle, PBM_SETRANGE, WPARAM::default(), LPARAM(101 << 16));
+                            SendMessageA(diag_window.progress_bar.handle, PBM_SETPOS, WPARAM(101), LPARAM::default());
+                            SendMessageA(diag_window.progress_bar.handle, PBM_SETPOS, WPARAM(100), LPARAM::default());
+                            SendMessageA(diag_window.progress_bar.handle, PBM_SETRANGE, WPARAM::default(), LPARAM(100 << 16));
                         }
 
                         //Invalidate the window
-                        InvalidateRect(dialog_wndw, None, true).expect("failed to invalidate the dialog window");
+                        InvalidateRect(window_handle, None, true).expect("failed to invalidate the dialog window");
                     }
                     prog_state.dirty = false;
                 }
@@ -290,29 +290,29 @@ extern "system" fn progress_dialog_proc(dialog_wndw: HWND, msg: u32, _msg_param1
                 //If yes, end the dialog
                 if prog_state.done {
                     //Wait a bit (0.1s) so that it looks less abrupt
-                    if prog_diag.done_delay >= 6 {
+                    if diag_window.done_delay >= 6 {
                         unsafe {
-                            EndDialog(dialog_wndw, 1).expect("failed to end progress dialog");
+                            EndDialog(window_handle, 1).expect("failed to end progress dialog");
                         }
                     } else {
-                        prog_diag.done_delay += 1;   
+                        diag_window.done_delay += 1;   
                     }
                 }
 
                 1
             }
             WM_GETDPISCALEDSIZE => {
-                let prog_diag = get_dialog_ref!(dialog_wndw);
+                let diag_window = get_dialog_window!(window_handle);
                 let dpi: i32 = _msg_param1.0 as i32;
 
                 //Update the layout, but don't apply it
-                let params = prog_diag.calc_layout_params((dpi, dpi));
-                prog_diag.update_font((dpi, dpi)).expect("failed to update dialog font");
-                prog_diag.update(&params).expect("failed to update dialog layout");
+                let params = diag_window.calc_layout_params((dpi, dpi));
+                diag_window.update_font((dpi, dpi)).expect("failed to update dialog font");
+                diag_window.update(&params).expect("failed to update dialog layout");
 
                 //Output the size
-                let (window_width, window_height) = prog_diag.window_layout.determine_adj_window_size(
-                    &prog_diag.calc_layout_params((dpi, dpi))
+                let (window_width, window_height) = diag_window.window_layout.determine_adj_window_size(
+                    &diag_window.calc_layout_params((dpi, dpi))
                 ).expect("failed to calculate adjusted window size on DPI change");
 
                 unsafe {
@@ -322,16 +322,16 @@ extern "system" fn progress_dialog_proc(dialog_wndw: HWND, msg: u32, _msg_param1
                 1
             }
             WM_DPICHANGED => {
-                let prog_diag = get_dialog_ref!(dialog_wndw);
+                let diag_window = get_dialog_window!(window_handle);
 
                 //Update the layout and apply it
                 let dpi = ((_msg_param1.0 & 0xffff) as i32, ((_msg_param1.0 >> 16) & 0xffff) as i32);
-                prog_diag.update_and_apply(dpi).expect("failed to update / apply dialog layout");
+                diag_window.update_and_apply(dpi).expect("failed to update / apply dialog layout");
 
                 //Redraw the window
                 unsafe {
                     RedrawWindow(
-                        dialog_wndw,
+                        window_handle,
                         None,
                         HRGN::default(),
                         RDW_ERASE | RDW_FRAME | RDW_INVALIDATE
@@ -343,7 +343,7 @@ extern "system" fn progress_dialog_proc(dialog_wndw: HWND, msg: u32, _msg_param1
             WM_CLOSE => {
                 //End the dialog
                 unsafe {
-                    EndDialog(dialog_wndw, 1).expect("failed to cancel progress dialog");
+                    EndDialog(window_handle, 1).expect("failed to cancel progress dialog");
                 }
 
                 1
