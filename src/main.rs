@@ -2,13 +2,11 @@
 
 use std::{process::ExitCode, fs, path::PathBuf, io};
 
-
 mod cfg;
 mod runtime;
 mod setup;
 mod ui;
 
-use cfg::*;
 use runtime::*;
 use setup::*;
 
@@ -20,17 +18,17 @@ const APP_BINARY_PATH: &str = "c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3
 const APP_BINARY_PATH: &str = "Test.dll";
 
 macro_rules! handle_error {
-    ($res:expr, $($msg_arg:expr),+) => {
+    ($res:expr, $($msg_arg:tt)+) => {
         match $res {
             Ok(v) => v,
             Err(err) => {
-                let msg = format!($($msg_arg),+);
-                eprintln!("Piton encountered an error while setting up the .NET runtime:");
-                eprintln!("{}: {err:?}", msg);
+                let msg = format!($($msg_arg)+);
+                log!("Piton encountered an error while setting up the .NET runtime:");
+                log!("{}: {err:?}", msg);
 
                 let err_msg: String;
-                if UI_ERRORMSG_HEADER.len() > 0 {
-                    err_msg = format!("{UI_ERRORMSG_HEADER}\n\n{msg}:\n{err}");
+                if cfg::UI_ERRORMSG_HEADER.len() > 0 {
+                    err_msg = format!("{header}\n\n{msg}:\n{err}", header = cfg::UI_ERRORMSG_HEADER);
                 } else {
                     err_msg = format!("{msg}:\n{err}");
                 }
@@ -85,24 +83,24 @@ fn main() -> ExitCode {
     //Read this target's runtime descriptor
     let target_id = format!("{os}-{bits}", os = std::env::consts::OS, bits = std::env::consts::ARCH);
 
-    let runtimes_file = install_dir.join(RUNTIME_DESCR_FILE);
+    let runtimes_file = install_dir.join(cfg::RUNTIME_DESCR_FILE);
     let runtime_descr = handle_error!(read_runtime_descr(&runtimes_file, &target_id), "Failed to read the runtime descriptor for target '{target_id}'");
-    println!("Read runtime descriptor for target '{target_id}': version {runtime_ver}", runtime_ver = runtime_descr.version);
+    log!("Read runtime descriptor for target '{target_id}': version {runtime_ver}", runtime_ver = runtime_descr.version);
 
     //Check if the runtime already exists
-    for runtime_dir in RUNTIME_DIR_PATHS { 
+    for runtime_dir in cfg::RUNTIME_DIR_PATHS { 
         let runtime_dir = install_dir.join(runtime_dir);
         match check_runtime_install(&runtime_dir, &runtime_descr, &target_id) {
             RuntimeCheckResult::Compatible => {
-                println!("Detected compatible existing runtime '{}', launching...", runtime_dir.display());
+                log!("Detected compatible existing runtime '{}', launching...", runtime_dir.display());
                 run_app_binary!(runtime_dir, app_bin_path);
             }
-            check_res => println!("Existing runtime isn't compatible: {check_res:?}")
+            check_res => log!("Existing runtime isn't compatible: {check_res:?}")
         };
     }
 
-    println!("Unable to locate existing compatible runtime, setting up new one");
-    let runtime_dir = install_dir.join(RUNTIME_DIR_PATHS[0]);
+    log!("Unable to locate existing compatible runtime, setting up new one");
+    let runtime_dir = install_dir.join(cfg::RUNTIME_DIR_PATHS[0]);
     
     //Remove the old runtime
     if runtime_dir.exists() {
@@ -128,6 +126,6 @@ Detailed error information:
     }
 
     //Run the app binary now
-    println!("Launching app after runtime setup completed successfully...");
+    log!("Launching app after runtime setup completed successfully...");
     run_app_binary!(runtime_dir, app_bin_path);
 }

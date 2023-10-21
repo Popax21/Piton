@@ -2,7 +2,7 @@ use std::error::Error;
 
 use indicatif::{ProgressBar, ProgressStyle};
 
-use super::ProgressAction;
+use super::{ProgressAction, log::LogHook};
 
 pub type CLIProgressAction = ProgressBar;
 
@@ -13,18 +13,25 @@ impl ProgressAction for CLIProgressAction {
     }
  
     fn is_cancelled(&self) -> bool { false }
-
-    fn println(&self, msg: &str) { self.println(msg) }
 }
 
 pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&CLIProgressAction) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {
+    //Create the progress bar
     let prog_bar = ProgressBar::new(100_000)
-        .with_style(ProgressStyle::default_bar().template("\n{prefix}\n> {msg}\n{wide_bar}").expect("failed to create progress bar style"))
+        .with_style(ProgressStyle::default_bar().template("{prefix}\n> {msg}\n{wide_bar}").expect("failed to create progress bar style"))
         .with_prefix(String::from(descr));
+    let prog_bar = &prog_bar;
 
-    let res = action(&prog_bar);
+    //Hook the logs to properly work with the progress bar
+    let log_hook_fnc = |msg: &_| prog_bar.println(msg);
+    let log_hook = LogHook::create(&log_hook_fnc);
 
+    //Run the action
+    let res = action(prog_bar);
+
+    //Cleanup
     prog_bar.finish_and_clear();
+    drop(log_hook);
 
     Ok(Some(res))
 }

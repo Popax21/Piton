@@ -10,7 +10,7 @@ use thiserror::Error;
 use tokio::runtime::Runtime;
 use url::Url;
 
-use crate::{runtime::{RuntimeDescriptor, RuntimeDownloadFormat, write_runtime_id}, ui::{run_progress_action, ProgressAction}};
+use crate::{runtime::{RuntimeDescriptor, RuntimeDownloadFormat, write_runtime_id}, ui::{run_progress_action, ProgressAction}, log};
 
 type ErrorBox = Box<dyn Error>;
 type CrossThreadErrorBox = Box<dyn Error + Send + Sync>;
@@ -67,7 +67,7 @@ pub fn setup_runtime(target_id: &str, runtime_descr: &RuntimeDescriptor, runtime
         if let Some(port) = download_url.port_or_known_default() {
             let download_host = download_host.to_string();
             if let Err(e) = TcpStream::connect((download_host.as_ref(), port)) {
-                println!("Failed to connect to the download server host: {download_host}");
+                log!("Failed to connect to the download server host: {download_host}");
                 return Err(SetupError::DownloadServerUnreachable { server: download_host, error: Box::new(e) });
             }
         }
@@ -88,10 +88,10 @@ pub fn setup_runtime(target_id: &str, runtime_descr: &RuntimeDescriptor, runtime
         if !runtime_descr.download_sha512.eq(runtime_hash) {
             let expected_hash = hex::encode(runtime_descr.download_sha512);
             let actual_hash = hex::encode(runtime_hash);
-            act.println(&format!("Unexpected download hash: {} != {}", expected_hash, actual_hash));
+            log!("Unexpected download hash: {} != {}", expected_hash, actual_hash);
             return Err(AsyncSetupError::DownloadHashMismatch(expected_hash, actual_hash));
         }
-        act.println("Downloaded runtime hash matches expected hash");
+        log!("Downloaded runtime hash matches expected hash");
 
         //Decompress it
         match runtime_descr.download_format {
@@ -105,7 +105,7 @@ pub fn setup_runtime(target_id: &str, runtime_descr: &RuntimeDescriptor, runtime
         //Write the runtime ID file
         write_runtime_id(runtime_dir, target_id, runtime_descr).map_err(|e| AsyncSetupError::FinalizationError(Box::new(e)))?;
 
-        act.println(&format!("Successfully set up runtime version {ver} for target '{target_id}' in '{dir}'", ver=runtime_descr.version, dir=runtime_dir.display()));
+        log!("Successfully set up runtime version {ver} for target '{target_id}' in '{dir}'", ver=runtime_descr.version, dir=runtime_dir.display());
         Ok(())
     }).map_err(SetupError::ProgressActionError)? else {
         println!("The user cancelled the operation");
@@ -126,7 +126,7 @@ fn download_runtime(act: &dyn ProgressAction, async_runtime: &Runtime, target_id
         //Obtain the length of the runtime archive
         let content_len = resp.content_length().ok_or("Download response has no Content-Length")?;
 
-        act.println(&format!("Downloading runtime '{target_id}' from '{}' ({})...", runtime_descr.download_url, ByteSize::b(content_len)));
+        log!("Downloading runtime '{target_id}' from '{}' ({})...", runtime_descr.download_url, ByteSize::b(content_len));
 
         let mut data = BytesMut::new();
 
@@ -165,7 +165,7 @@ fn decompress_targz_runtime(act: &dyn ProgressAction, runtime_dir: &Path, data: 
     let mut archive = tar::Archive::new(GzDecoder::new(Cursor::new(data)));
     let num_entries = archive.entries()?.count();
 
-    act.println(&format!("Unpacking TAR ({num_entries} entries)..."));
+    log!("Unpacking TAR ({num_entries} entries)...");
     act.set_progress(&format!("Unpacking archive: 0/{num_entries}"), 0_f64);
     
     //Unpack the TAR

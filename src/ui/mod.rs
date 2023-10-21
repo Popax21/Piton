@@ -5,8 +5,10 @@ use crate::cfg::UI_DRIVER;
 #[cfg(not(any(feature = "gui", feature = "cli")))]
 compile_error!("either feature \"cli\" or feature \"gui\" (or both) has to be enabled");
 
-#[cfg(feature = "cli")] pub mod cli;
-#[cfg(feature = "gui")] pub mod gui;
+#[cfg(feature = "cli")] mod cli;
+#[cfg(feature = "gui")] mod gui;
+
+pub mod log;
 
 #[derive(serde::Deserialize)]
 pub enum UIDriver {
@@ -24,8 +26,6 @@ pub enum UIDriver {
 pub trait ProgressAction {
     fn set_progress(&self, txt: &str, fract: f64);
     fn is_cancelled(&self) -> bool;
-
-    fn println(&self, msg: &str) { println!("{msg}"); }
 }
 
 pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&dyn ProgressAction) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {

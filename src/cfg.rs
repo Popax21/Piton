@@ -1,5 +1,7 @@
 use crate::ui::UIDriver;
 
+pub const IS_QUIET: bool = true;
+
 pub const RUNTIME_DESCR_FILE: &str = "piton-runtime.yaml";
 
 pub const RUNTIME_DIR_PATHS: &[&str] = &[
