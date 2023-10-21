@@ -2,7 +2,7 @@ use std::error::Error;
 
 use windows::{Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK, MB_SYSTEMMODAL}, core::HSTRING};
 
-use crate::gui::GUI_APP_NAME;
+use crate::cfg::GUI_APP_NAME;
 
 use super::WinError;
 

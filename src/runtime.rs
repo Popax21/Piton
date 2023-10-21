@@ -26,7 +26,7 @@ pub enum RuntimeDownloadFormat {
 
 #[derive(thiserror::Error, Debug)]
 pub enum RuntimeError {
-    #[error("Failed to parse the 'everest-runtime.yaml' runtime descriptor file: {0}")]
+    #[error("Failed to parse the 'piton-runtime.yaml' runtime descriptor file: {0}")]
     RuntimeFileParse(Box<dyn Error>),
 
     #[error("Current runtime target '{0}' is not supported")]
@@ -64,8 +64,8 @@ pub enum RuntimeCheckResult {
 }
 
 pub fn check_runtime_install(runtime_dir: &Path, runtime_descr: &RuntimeDescriptor, target_id: &str) -> RuntimeCheckResult {
-    //Check if the runtime directory contains a everest-runtime-id.txt file with the wanted runtime ID
-    let dir_id_str = match fs::read_to_string(runtime_dir.join("everest-runtime-id.txt")) {
+    //Check if the runtime directory contains a piton-runtime-id.txt file with the wanted runtime ID
+    let dir_id_str = match fs::read_to_string(runtime_dir.join("piton-runtime-id.txt")) {
         Ok(id) => id,
         Err(_) => return RuntimeCheckResult::NotARuntime
     };
@@ -87,7 +87,7 @@ pub fn check_runtime_install(runtime_dir: &Path, runtime_descr: &RuntimeDescript
 }
 
 pub fn write_runtime_id(runtime_dir: &Path, target_id: &str, runtime_descr: &RuntimeDescriptor) -> io::Result<()> {
-    fs::write(runtime_dir.join("everest-runtime-id.txt"), format!("{target_id} {ver}", ver=runtime_descr.version))
+    fs::write(runtime_dir.join("piton-runtime-id.txt"), format!("{target_id} {ver}", ver=runtime_descr.version))
 }
 
 pub fn launch_app_binary(runtime_dir: &Path, app_bin_path: &Path, args: &[&str]) -> Result<i32, Box<dyn Error>> {

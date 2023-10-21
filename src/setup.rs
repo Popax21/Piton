@@ -77,7 +77,7 @@ pub fn setup_runtime(target_id: &str, runtime_descr: &RuntimeDescriptor, runtime
     let async_runtime = Runtime::new().map_err(|e| SetupError::AsyncRuntimeError(Box::new(e)))?;
 
     //Open the progress dialog
-    let diag_descr = format!("Setting up the Everest .NET {} runtime, please wait...", runtime_descr.version);
+    let diag_descr = format!("Setting up the .NET {} runtime, please wait...", runtime_descr.version);
     let Some(diag_res) = run_progress_dialog::<Result<(), AsyncSetupError>>(&diag_descr, move |dialog| {
         //Download the runtime archive
         let runtime_data = download_runtime(dialog, &async_runtime, target_id, runtime_descr).map_err(AsyncSetupError::DownloadError)?;

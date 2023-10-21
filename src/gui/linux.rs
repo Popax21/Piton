@@ -8,7 +8,7 @@ use gtk::glib::{ControlFlow, BoolError};
 use gtk::{prelude::*, Dialog, Label, Orientation, ProgressBar, Window, ResponseType};
 use gtk::{DialogFlags, MessageDialog, MessageType, ButtonsType};
 
-use super::GUI_APP_NAME;
+use crate::cfg::GUI_APP_NAME;
 
 fn init_gtk() -> Result<(), BoolError> {
     static GTK_INIT_LOCK: OnceLock<Result<ThreadId, BoolError>> = OnceLock::new();
