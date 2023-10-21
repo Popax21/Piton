@@ -7,22 +7,22 @@ edition = "2021"
 testapp = []
 
 [dependencies]
-bytes = "1.5.0"
+bytes = { default-features = false, version = "1.5.0" }
 bytesize = "1.3.0"
 derive = "1.0.0"
-flate2 = "1.0.28"
-futures-util = "0.3.28"
+flate2 = { features = ["rust_backend"], default-features = false, version = "1.0.28" }
+futures-util = { default-features = false, version = "0.3.28" }
 hex = { version = "0.4.3", features = ["serde"] }
 netcorehost = "0.15.1"
-reqwest = { version = "0.11.22", features = ["stream"] }
-serde = { version = "1.0.188", features = ["derive"] }
+reqwest = { version = "0.11.22", features = ["default-tls", "stream"], default-features = false }
+serde = { version = "1.0.188", features = ["derive"], default-features = false }
 serde_yaml = "0.9.25"
-sha2 = "0.10.8"
-tar = "0.4.40"
+sha2 = { default-features = false, version = "0.10.8" }
+tar = { default-features = false, version = "0.4.40" }
 thiserror = "1.0.49"
-tokio = { version = "1.33.0", features = ["rt-multi-thread"] }
+tokio = { version = "1.33.0", features = ["rt-multi-thread"], default-features = false }
 url = "2.4.1"
-zip = { version = "0.6.6", default-features = false, features = ["bzip2", "deflate", "zstd"] }
+zip = "0.6.6"
 
 [build-dependencies]
 embed-manifest = "1.4.0"
