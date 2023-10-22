@@ -1,7 +1,7 @@
-use std::{collections::HashMap, path::{Path, PathBuf}, error::Error, fs, io};
+use std::{collections::HashMap, path::Path, error::Error, fs, io, env, ops::Deref};
 
 use serde::Deserialize;
-use netcorehost::{nethost, pdcstring::PdCString};
+use netcorehost::{nethost, pdcstring::PdCString, hostfxr::Hostfxr, error::HostingError, bindings::char_t};
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub struct Sha512Hash(#[serde(with="hex::serde")] pub [u8; 64]);
@@ -93,24 +93,74 @@ pub fn write_runtime_id(runtime_dir: &Path, target_id: &str, runtime_descr: &Run
     fs::write(runtime_dir.join("piton-runtime-id.txt"), format!("{target_id} {ver}", ver=runtime_descr.version))
 }
 
-pub fn launch_app_binary(runtime_dir: &Path, app_bin_path: &Path, args: &[&str]) -> Result<i32, Box<dyn Error>> {
+pub struct AppInfo<'a> {
+    pub app_path: &'a Path,
+    pub bundle_offset: i64
+}
+
+impl AppInfo<'_> {
+    pub const fn is_bundle(&self) -> bool { self.bundle_offset > 0 }
+}
+
+pub fn launch_app_binary(runtime_dir: Option<&Path>, app_info: &AppInfo) -> Result<i32, Box<dyn Error>> {
     //Load the hostfxr library
-    let dotnet_root = PdCString::from_os_str(runtime_dir)?;
-    let hostfxr = nethost::load_hostfxr_with_dotnet_root(&dotnet_root)?;
+    let dotnet_root: PdCString;
+    let hostfxr: Hostfxr;
+    if let Some(runtime_dir) = runtime_dir {
+        dotnet_root = PdCString::from_os_str(runtime_dir)?;
+        hostfxr = nethost::load_hostfxr_with_dotnet_root(&dotnet_root)?;
+    } else {
+        //Use the system hostfxr
+        //Note that we do not support self-contained apps, so we don't have to pass the application root to check for those
+        hostfxr = nethost::load_hostfxr()?;
 
-    //Initialize the hosting components
-    let app_bin_path = PdCString::from_os_str(app_bin_path.as_os_str());
-    let args: Vec<PdCString> = std::iter::once(app_bin_path).chain(args.iter().map(PdCString::from_os_str)).collect::<Result<_, _>>()?;
-    let ctx = hostfxr.initialize_for_dotnet_command_line_with_args_and_dotnet_root(&args.iter().map(PdCString::as_ref).collect::<Vec<_>>(), dotnet_root)?;
+        //This is rather jank since it assumes a particular layout of the runtime root
+        //However, hostfxr_resolver_t::dotnet_root() isn't exposed by the nethost library ._.
+        let hostfxr_path = nethost::get_hostfxr_path()?;
+        let hostfxr_path: &Path = hostfxr_path.as_ref();
 
-    //Add the runtime root to the path (in case anything tries to run dotnet directly)
-    let path_var = std::env::var_os("PATH").unwrap_or_default();
-    let mut path = std::env::split_paths(&path_var).collect::<Vec<_>>();
-    path.insert(0, PathBuf::from(runtime_dir));
-    std::env::set_var("PATH", std::env::join_paths(path)?);
+        let hostfxr_dir = hostfxr_path.parent().ok_or("hostfxr library path has no parent directory")?;
 
-    //Run the application
-    let res = ctx.run_app();
-    if let Err(err) = res.as_hosting_exit_code().into_result() { return Err(Box::new(err)); };
-    Ok(res.value())
+        let fxr_dir = hostfxr_dir.parent().ok_or("hostfxr library directory has no parent directory")?;
+        if !fxr_dir.file_name().map_or(false, |n| n.eq("fxr")) { return Err("'fxr' directory is not named 'fxr'")?; }
+
+        let host_dir = fxr_dir.parent().ok_or("'fxr' directory has no parent directory")?;
+        if !host_dir.file_name().map_or(false, |n| n.eq("host")) { return Err("'host' directory is not named 'host'")?; }
+
+        let root_dir = host_dir.parent().ok_or("'host' directory has no parent directory")?;
+        dotnet_root = PdCString::from_os_str(root_dir.as_os_str())?;
+    }
+
+    let hostfxr = hostfxr.lib.deref();
+
+    //Discard printed error messages as they only clutter up our own log message
+    //We handle errors based on the hostfxr return codes
+    unsafe {
+        extern "C" fn nop_writer(_err: *const char_t) {}
+        hostfxr.hostfxr_set_error_writer(nop_writer);
+    }
+
+    //Run the app
+    let host_path = PdCString::from_os_str(env::current_exe()?.as_os_str())?;
+    let args: Vec<PdCString> = env::args_os().map(PdCString::from_os_str).collect::<Result<_, _>>()?;
+    let app_path = PdCString::from_os_str(app_info.app_path.as_os_str())?;
+
+    let res = unsafe {
+        let args = args.iter().map(|s| s.as_ptr()).collect::<Vec<_>>();
+
+        if app_info.is_bundle() {
+            hostfxr.hostfxr_main_bundle_startupinfo(args.len() as i32, args.as_ptr(), host_path.as_ptr(), dotnet_root.as_ptr(), app_path.as_ptr(), app_info.bundle_offset)
+        } else {
+            hostfxr.hostfxr_main_startupinfo(args.len() as i32, args.as_ptr(), host_path.as_ptr(), dotnet_root.as_ptr(), app_path.as_ptr())
+        }
+    }.ok_or("failed to invoke hostfxr main routine")?;
+
+    //Parse the result
+    //Note that there's no mechanism to distinguish app return codes from hostfxr ones
+    //So if an app returns such an error code, we will think that we failed to execute the app
+    //Too bad!
+    match HostingError::known_from_status_code(res as u32) {
+        Ok(err) => Err(Box::new(err)),
+        Err(_) => Ok(res)
+    }
 }

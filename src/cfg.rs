@@ -8,6 +8,8 @@ pub const RUNTIME_DIR_PATHS: &[&str] = &[
     "piton-runtime"
 ];
 
+pub const USE_SYSTEM_RUNTIME: bool = true;
+
 #[allow(unreachable_code)]
 const fn det_default_ui_driver() -> UIDriver {
     #[cfg(feature = "gui")] return UIDriver::Gui;
