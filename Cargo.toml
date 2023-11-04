@@ -37,3 +37,8 @@ gtk = { version = "0.18.1", optional = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.51.1", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Controls", "Win32_System_Console", "Win32_System_LibraryLoader", "Win32_System_SystemServices", "Win32_Graphics_Gdi"], optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2.7"
+cacao = "0.4.0-beta2"
+dispatch = "0.2.0"
