@@ -41,4 +41,3 @@ windows = { version = "0.51.1", features = ["Win32_Foundation", "Win32_UI_Window
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2.7"
 cacao = "0.4.0-beta2"
-dispatch = "0.2.0"

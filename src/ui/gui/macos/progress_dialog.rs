@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::sync::Mutex;
+use std::thread;
 use cacao::appkit::{App, AppDelegate};
 use cacao::appkit::menu::{Menu, MenuItem};
 use cacao::appkit::window::{Window, WindowConfig, WindowDelegate};
@@ -7,8 +8,6 @@ use cacao::layout::{Layout, LayoutConstraint};
 use cacao::progress::ProgressIndicator;
 use cacao::text::{Label, TextAlign};
 use cacao::view::View;
-use dispatch::Queue;
-
 use crate::ui::ProgressAction;
 use crate::cfg::UI_APP_NAME;
 
@@ -42,16 +41,6 @@ struct AppWindow {
     top_label: Label,
     bottom_label: Label,
     progress: ProgressIndicator,
-}
-
-impl AppWindow {
-    //Updates the progress bar and label using the main dispatch queue
-    fn apply_state(&mut self, state: ProgressState) {
-        Queue::main().exec_async(|| {
-            self.bottom_label.set_text(state.text);
-            self.progress.set_value(state.fract);
-        });
-    }
 }
 
 //Implementation of NSWindowDelegate
@@ -121,20 +110,52 @@ impl ProgressAction for MacOSProgressAction<'_> {
 }
 
 pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgressAction) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {
-    //Create a window
-    let window = AppWindow::default();
-    window.top_label.set_text(descr);
-
-    //Create an app using the specified delegates
+    //Create a window and delegate
+    let window_delegate = AppWindow::default();
+    window_delegate.top_label.set_text(descr);
+    let window = Window::with(WindowConfig::default(), window_delegate);
     //TODO: replace bundle id
-    let app = App::new("com.hello.world", BasicApp {
-        window: Window::with(WindowConfig::default(), window)
-    });
+    let app = App::new("com.hello.world", BasicApp { window });
 
-    //TODO: worker thread etc. that calls window.apply_state(state) periodically
+    //Setup the progress state
+    let prog_state = &Mutex::new(ProgressState::default());
 
-    //Block while the application runs
-    app.run();
+    thread::scope(move |scope| {
+        //Start the worker thread
+        let work_thread: thread::ScopedJoinHandle<Option<T>> = scope.spawn(move || {
+            //Setup the poison pill which sets the done flag upon exit
+            struct PoisonPill<'a>(&'a Mutex<ProgressState>);
+            impl Drop for PoisonPill<'_> {
+                fn drop(&mut self) {
+                    self.0.lock().unwrap().done = true;
+                }
+            }
+            let _pill = PoisonPill(prog_state);
 
-    Ok(None)
+            //Run the action
+            let ret = action(&MacOSProgressAction { state: prog_state });
+
+            if !prog_state.lock().unwrap().cancelled {
+                Some(ret)
+            } else {
+                None
+            }
+        });
+
+        // TODO: update the UI here using these three statements
+        // bottom_label.set_text(state.text)
+        // progress.set_value(state.fract)
+        // window.close()
+
+        app.run();
+
+        //Set the cancel flag
+        prog_state.lock().unwrap().cancelled = true;
+
+        //Wait for the worker thread to finish
+        match work_thread.join() {
+            Ok(r) => Ok(r),
+            Err(e) => std::panic::resume_unwind(e)
+        }
+    })
 }
