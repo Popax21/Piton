@@ -48,13 +48,13 @@ impl ProgressAction for MacOSProgressAction<'_> {
 
 pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgressAction) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {
     //Setup the progress state
-    let prog_state = &Mutex::new(ProgressState::default());
+    let prog_state = Rc::new(Mutex::new(ProgressState::default()));
 
     //Create the application & window
     let window_delegate = ProgressDialogWindow {
         content: View::new(),
 
-        descr_text: descr,
+        descr_text: String::from(descr),
         descr_label: Label::new(),
 
         progress_label: Label::new(),
@@ -63,7 +63,7 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgr
 
     let app = App::new("io.github.everestapi.piton", ProgressDialogApp {
         window: Window::with(WindowConfig::default(), window_delegate),
-        state: prog_state
+        state: prog_state.clone()
     });
 
     thread::scope(move |scope| {
@@ -104,12 +104,12 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgr
     })
 }
 
-struct ProgressDialogApp<'a> {
-    window: Window<ProgressDialogWindow<'a>>,
-    state: &'a Mutex<ProgressState>
+struct ProgressDialogApp {
+    window: Window<ProgressDialogWindow>,
+    state: Rc<Mutex<ProgressState>>
 }
 
-impl AppDelegate for ProgressDialogApp<'_> {
+impl AppDelegate for ProgressDialogApp {
     fn did_finish_launching(&self) {
         //Define the app-level menu (required)
         App::set_menu(vec![
@@ -125,7 +125,7 @@ impl AppDelegate for ProgressDialogApp<'_> {
 }
 
 struct UpdateProgressMsg;
-impl Dispatcher for ProgressDialogApp<'_> {
+impl Dispatcher for ProgressDialogApp {
     type Message = UpdateProgressMsg;
 
     fn on_ui_message(&self, _: Self::Message) {
@@ -140,7 +140,7 @@ impl Dispatcher for ProgressDialogApp<'_> {
         }
 
         //Apply the state to the window
-        let window = self.window.delegate.unwrap();
+        let window = self.window.delegate.as_ref().unwrap();
         window.progress_label.set_text(state.text);
         window.progress_bar.set_value(state.fract);
 
@@ -148,18 +148,18 @@ impl Dispatcher for ProgressDialogApp<'_> {
     }
 }
 
-struct ProgressDialogWindow<'a> {
+struct ProgressDialogWindow {
     content: View,
 
     descr_label: Label,
-    descr_text: &'a str,
+    descr_text: String,
 
     progress_label: Label,
     progress_bar: ProgressIndicator,
 }
 
 //Implementation of NSWindowDelegate
-impl WindowDelegate for ProgressDialogWindow<'_> {
+impl WindowDelegate for ProgressDialogWindow {
     const NAME: &'static str = "WindowDelegate";
 
     fn did_load(&mut self, window: Window) {
