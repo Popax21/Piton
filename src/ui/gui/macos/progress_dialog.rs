@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::rc::Rc;
 use std::sync::Mutex;
 use std::thread;
 use cacao::appkit::{App, AppDelegate};
@@ -38,7 +39,7 @@ impl ProgressAction for MacOSProgressAction<'_> {
 
         //Send a message to the main thread to update the progress window (if there isn't already a pending message)
         if !state.has_pending_msg {
-            App::dispatch_main::<ProgressDialogApp, _>(UpdateProgressMsg);
+            App::<ProgressDialogApp, _>::dispatch_main(UpdateProgressMsg);
             state.has_pending_msg = true;
         }
     }
@@ -78,10 +79,10 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgr
                     self.0.lock().unwrap().done = true;
                 }
             }
-            let _pill = PoisonPill(prog_state);
+            let _pill = PoisonPill(&prog_state);
 
             //Run the action
-            let ret = action(&MacOSProgressAction { state: prog_state });
+            let ret = action(&MacOSProgressAction { state: &prog_state });
 
             if !prog_state.lock().unwrap().cancelled {
                 Some(ret)
@@ -164,7 +165,7 @@ impl WindowDelegate for ProgressDialogWindow {
 
     fn did_load(&mut self, window: Window) {
         // - description label
-        self.descr_label.set_text(self.descr_text);
+        self.descr_label.set_text(&self.descr_text);
         self.descr_label.set_text_alignment(TextAlign::Center);
         self.content.add_subview(&self.descr_label);
 
