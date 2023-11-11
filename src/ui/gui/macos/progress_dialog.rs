@@ -141,7 +141,7 @@ impl Dispatcher for ProgressDialogApp<'_> {
 
         //Apply the state to the window
         let window = self.window.delegate.unwrap();
-        window.progress_label.set_text(state.text);
+        window.progress_label.set_text(&state.text);
         window.progress_bar.set_value(state.fract);
 
         state.has_pending_msg = false;
@@ -174,6 +174,7 @@ impl WindowDelegate for ProgressDialogWindow<'_> {
         self.content.add_subview(&self.progress_label);
 
         // - progress bar
+        self.progress_bar.set_indeterminate(false);
         self.progress_bar.set_value(0.);
         self.content.add_subview(&self.progress_bar);
 
