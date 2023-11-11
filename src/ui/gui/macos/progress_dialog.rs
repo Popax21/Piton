@@ -109,7 +109,7 @@ struct ProgressDialogApp<'a> {
     state: &'a Mutex<ProgressState>
 }
 
-impl AppDelegate for ProgressDialogApp {
+impl AppDelegate for ProgressDialogApp<'_> {
     fn did_finish_launching(&self) {
         //Define the app-level menu (required)
         App::set_menu(vec![
@@ -125,7 +125,7 @@ impl AppDelegate for ProgressDialogApp {
 }
 
 struct UpdateProgressMsg;
-impl Dispatcher for ProgressDialogApp {
+impl Dispatcher for ProgressDialogApp<'_> {
     type Message = UpdateProgressMsg;
 
     fn on_ui_message(&self, _: Self::Message) {
