@@ -38,7 +38,7 @@ impl ProgressAction for MacOSProgressAction<'_> {
 
         //Send a message to the main thread to update the progress window (if there isn't already a pending message)
         if !state.has_pending_msg {
-            App::dispatch_main(UpdateProgressMsg);
+            App::dispatch_main::<ProgressDialogApp, _>(UpdateProgressMsg);
             state.has_pending_msg = true;
         }
     }
