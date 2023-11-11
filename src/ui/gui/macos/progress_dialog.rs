@@ -38,7 +38,7 @@ impl ProgressAction for MacOSProgressAction<'_> {
 
         //Send a message to the main thread to update the progress window (if there isn't already a pending message)
         if !state.has_pending_msg {
-            App::dispatch_main(UpdateProgressMsg());
+            App::dispatch_main(UpdateProgressMsg);
             state.has_pending_msg = true;
         }
     }
@@ -104,9 +104,9 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgr
     })
 }
 
-struct ProgressDialogApp {
-    window: Window<ProgressDialogWindow>,
-    state: &Mutex<ProgressState>
+struct ProgressDialogApp<'a> {
+    window: Window<ProgressDialogWindow<'a>>,
+    state: &'a Mutex<ProgressState>
 }
 
 impl AppDelegate for ProgressDialogApp {
@@ -159,7 +159,7 @@ struct ProgressDialogWindow<'a> {
 }
 
 //Implementation of NSWindowDelegate
-impl WindowDelegate for ProgressDialogWindow {
+impl WindowDelegate for ProgressDialogWindow<'_> {
     const NAME: &'static str = "WindowDelegate";
 
     fn did_load(&mut self, window: Window) {
