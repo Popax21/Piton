@@ -17,19 +17,19 @@ jobs:
 
     - name: Build x86 Piton binary
       run: cargo build --verbose --release --target i686-pc-windows-msvc
-    - run: mv target/i686-pc-windows-msvc/release/piton piton-win_x86
+    - run: mv target/i686-pc-windows-msvc/release/piton.exe piton-win_x86.exe
   
     - name: Build x64 Piton binary
       run: cargo build --verbose --release --target x86_64-pc-windows-msvc
-    - run: mv target/x86_64-pc-windows-msvc/release/piton piton-win_x64
+    - run: mv target/x86_64-pc-windows-msvc/release/piton.exe piton-win_x64.exe
 
     - name: Upload Piton binaries
       uses: actions/upload-artifact@v3.1.3
       with:
         name: piton-binaries
         path: |
-          piton-win_x86
-          piton-win_x64
+          piton-win_x86.exe
+          piton-win_x64.exe
 
   build-linux:
     runs-on: ubuntu-latest
@@ -70,7 +70,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            piton/piton-win_x86
-            piton/piton-win_x64
+            piton/piton-win_x86.exe
+            piton/piton-win_x64.exe
             piton/piton-linux_x64
             piton/piton-macos_x64
