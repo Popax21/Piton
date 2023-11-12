@@ -122,10 +122,10 @@ pub fn launch_app_binary(runtime_dir: Option<&Path>, app_info: &AppInfo) -> Resu
         let hostfxr_dir = hostfxr_path.parent().ok_or("hostfxr library path has no parent directory")?;
 
         let fxr_dir = hostfxr_dir.parent().ok_or("hostfxr library directory has no parent directory")?;
-        if !fxr_dir.file_name().map_or(false, |n| n.eq("fxr")) { return Err("'fxr' directory is not named 'fxr'")?; }
+        if !fxr_dir.file_name().map_or(false, |n| n.eq("fxr")) { return Err("'fxr' directory is not named 'fxr'".into()); }
 
         let host_dir = fxr_dir.parent().ok_or("'fxr' directory has no parent directory")?;
-        if !host_dir.file_name().map_or(false, |n| n.eq("host")) { return Err("'host' directory is not named 'host'")?; }
+        if !host_dir.file_name().map_or(false, |n| n.eq("host")) { return Err("'host' directory is not named 'host'".into()); }
 
         let root_dir = host_dir.parent().ok_or("'host' directory has no parent directory")?;
         dotnet_root = PdCString::from_os_str(root_dir.as_os_str())?;
