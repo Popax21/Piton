@@ -5,7 +5,8 @@ pub const IS_QUIET: bool = true;
 pub const RUNTIME_DESCR_FILE: &str = "piton-runtime.yaml";
 
 pub const RUNTIME_DIR_PATHS: &[&str] = &[
-    "piton-runtime"
+    "piton-runtime",
+    "../piton-runtime"
 ];
 
 pub const USE_SYSTEM_RUNTIME: bool = true;
