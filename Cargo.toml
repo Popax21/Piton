@@ -17,7 +17,7 @@ flate2 = { features = ["rust_backend"], default-features = false, version = "1.0
 futures-util = { default-features = false, version = "0.3.28" }
 hex = { version = "0.4.3", features = ["serde"] }
 netcorehost = { git = "https://github.com/OpenByteDev/netcorehost.git" }
-reqwest = { version = "0.11.22", features = ["default-tls", "stream"], default-features = false }
+reqwest = { version = "0.11.22", features = ["rustls-tls", "stream"], default-features = false }
 serde = { version = "1.0.188", features = ["derive"], default-features = false }
 serde_yaml = "0.9.25"
 sha2 = { default-features = false, version = "0.10.8" }
