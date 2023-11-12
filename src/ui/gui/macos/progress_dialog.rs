@@ -1,6 +1,5 @@
 use std::error::Error;
-use std::rc::Rc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use cacao::appkit::{App, AppDelegate};
 use cacao::appkit::menu::{Menu, MenuItem};
@@ -49,7 +48,7 @@ impl ProgressAction for MacOSProgressAction<'_> {
 
 pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgressAction) -> T + Send) -> Result<Option<T>, Box<dyn Error>> {
     //Setup the progress state
-    let prog_state = Rc::new(Mutex::new(ProgressState::default()));
+    let prog_state = Arc::new(Mutex::new(ProgressState::default()));
 
     //Create the application & window
     let window_delegate = ProgressDialogWindow {
@@ -107,7 +106,7 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgr
 
 struct ProgressDialogApp {
     window: Window<ProgressDialogWindow>,
-    state: Rc<Mutex<ProgressState>>
+    state: Arc<Mutex<ProgressState>>
 }
 
 impl AppDelegate for ProgressDialogApp {
