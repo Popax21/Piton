@@ -1,5 +1,3 @@
-#![windows_subsystem = "windows"]
-
 use std::{process::ExitCode, fs, path::PathBuf, io};
 
 mod cfg;
