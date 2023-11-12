@@ -68,27 +68,30 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgr
 
     thread::scope(move |scope| {
         //Start the worker thread
-        let work_thread: thread::ScopedJoinHandle<Option<T>> = scope.spawn(move || {
-            activate_cocoa_multithreading();
+        let work_thread: thread::ScopedJoinHandle<Option<T>> = {
+            prog_state = prog_state.clone();
+            scope.spawn(move || {
+                activate_cocoa_multithreading();
 
-            //Setup the poison pill which sets the done flag upon exit
-            struct PoisonPill<'a>(&'a Mutex<ProgressState>);
-            impl Drop for PoisonPill<'_> {
-                fn drop(&mut self) {
-                    self.0.lock().unwrap().done = true;
+                //Setup the poison pill which sets the done flag upon exit
+                struct PoisonPill<'a>(&'a Mutex<ProgressState>);
+                impl Drop for PoisonPill<'_> {
+                    fn drop(&mut self) {
+                        self.0.lock().unwrap().done = true;
+                    }
                 }
-            }
-            let _pill = PoisonPill(&prog_state);
+                let _pill = PoisonPill(&prog_state);
 
-            //Run the action
-            let ret = action(&MacOSProgressAction { state: &prog_state });
+                //Run the action
+                let ret = action(&MacOSProgressAction { state: &prog_state });
 
-            if !prog_state.lock().unwrap().cancelled {
-                Some(ret)
-            } else {
-                None
-            }
-        });
+                if !prog_state.lock().unwrap().cancelled {
+                    Some(ret)
+                } else {
+                    None
+                }
+            })
+        };
 
         //Run the app
         app.run();
