@@ -78,6 +78,8 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgr
                 impl Drop for PoisonPill<'_> {
                     fn drop(&mut self) {
                         self.0.lock().unwrap().done = true;
+                        self.0.lock().unwrap().has_pending_msg = true;
+                        App::<ProgressDialogApp, _>::dispatch_main(UpdateProgressMsg);
                     }
                 }
                 let _pill = PoisonPill(&prog_state);
