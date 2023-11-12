@@ -69,7 +69,7 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&MacOSProgr
     thread::scope(move |scope| {
         //Start the worker thread
         let work_thread: thread::ScopedJoinHandle<Option<T>> = {
-            prog_state = prog_state.clone();
+            let prog_state = prog_state.clone();
             scope.spawn(move || {
                 activate_cocoa_multithreading();
 
@@ -145,7 +145,7 @@ impl Dispatcher for ProgressDialogApp {
         //Apply the state to the window
         let window = self.window.delegate.as_ref().unwrap();
         window.progress_label.set_text(&state.text);
-        window.progress_bar.set_value(state.fract);
+        window.progress_bar.set_value(state.fract * 100.);
 
         state.has_pending_msg = false;
     }
