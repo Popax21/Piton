@@ -1,0 +1,76 @@
+name: Build Piton binaries
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build x86 Piton binary
+      run: cargo build --verbose --release --target i686-pc-windows-msvc
+    - run: mv target/i686-pc-windows-msvc/release/piton piton-win_x86
+  
+    - name: Build x64 Piton binary
+      run: cargo build --verbose --release --target x86_64-pc-windows-msvc
+    - run: mv target/x86_64-pc-windows-msvc/release/piton piton-win_x64
+
+    - name: Upload Piton binaries
+      uses: actions/upload-artifact@v3.1.3
+      with:
+        name: piton-binaries
+        path: |
+          piton-win_x86
+          piton-win_x64
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Piton binary
+      run: cargo build --verbose --release --target x86_64-unknown-linux-gnu
+    - run: mv target/x86_64-unknown-linux-gnu/release/piton piton-linux_x64
+    - name: Upload Piton binary
+      uses: actions/upload-artifact@v3.1.3
+      with:
+        name: piton-binaries
+        path: piton-linux_x64
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Piton binary
+      run: cargo build --verbose --release --target x86_64-apple-darwin
+    - run: mv target/x86_64-apple-darwin/release/piton piton-macos_x64
+    - name: Upload Piton binary
+      uses: actions/upload-artifact@v3.1.3
+      with:
+        name: piton-binaries
+        path: piton-macos_x64
+
+  upload-binaries:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    needs: 
+      - build-windows
+      - build-linux
+      - build-macos
+    steps:
+      - uses: actions/download-artifact@v2.1.1
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            piton/piton-win_x86
+            piton/piton-win_x64
+            piton/piton-linux_x64
+            piton/piton-macos_x64
