@@ -190,7 +190,7 @@ extern "system" fn progress_dialog_proc(window_handle: HWND, msg: u32, _msg_para
     macro_rules! get_dialog_window {
         ($window:expr) => {
             unsafe {
-                let user_data: isize = GetWindowLongPtrW($window, DWLP_USER);
+                let user_data: isize = GetWindowLongPtrW($window, DWLP_USER) as isize;
                 (user_data as *mut DialogWindow).as_mut().expect("dialog window has no DialogWIndow pointer attached")
             }
         };
@@ -202,6 +202,13 @@ extern "system" fn progress_dialog_proc(window_handle: HWND, msg: u32, _msg_para
                 //Set the progress dialog pointer
                 unsafe {
                     SetLastError(ERROR_SUCCESS);
+                    // The signature is different on x86 for some reason
+                    #[cfg(target_pointer_width = 32)]
+                    if SetWindowLongPtrW(window_handle, DWLP_USER, _msg_param2.0 as i32) == 0 {
+                        GetLastError().expect("failed to set dialog DialogWindow pointer");
+                    }
+
+                    #[cfg(not(target_pointer_width = 32))]
                     if SetWindowLongPtrW(window_handle, DWLP_USER, _msg_param2.0) == 0 {
                         GetLastError().expect("failed to set dialog DialogWindow pointer");
                     }
