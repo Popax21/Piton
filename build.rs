@@ -1,8 +1,11 @@
 use embed_manifest::{embed_manifest, new_manifest};
 
 fn main() {
-    //Embed a Windows manifest
     if std::env::var_os("CARGO_CFG_WINDOWS").is_some() {
+        //Statically link vcruntime140.dll
+        static_vcruntime::metabuild();
+
+        //Embed a Windows manifest
         embed_manifest(new_manifest("Piton")).expect("unable to embed manifest file");
     }
 

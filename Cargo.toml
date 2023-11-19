@@ -31,6 +31,7 @@ indicatif = { version = "0.17.7", optional = true }
 
 [build-dependencies]
 embed-manifest = "1.4.0"
+static_vcruntime = "2.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { version = "0.18.1", optional = true }
