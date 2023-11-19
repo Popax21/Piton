@@ -34,7 +34,7 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             args: -F gui
-            name: piton-gui-win_x64.
+            name: piton-gui-win_x64.exe
 
           # Linux
           - os: ubuntu-latest
@@ -45,7 +45,7 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             args: -F gui
-            name: piton-gui-
+            name: piton-gui-linux_x64
 
           # MacOS
           - os: macos-latest
