@@ -64,7 +64,7 @@ fn main() -> ExitCode {
     #[cfg(all(target_os = "windows", feature = "gui"))]
     if let Ok(console_env) = std::env::var("PITON_WIN_CONSOLE") {
         unsafe {
-            match &console_env {
+            match console_env.as_str() {
                 "alloc" => {
                     windows::Win32::System::Console::AllocConsole().expect("failed to allocate a Win32 console");
                 },
