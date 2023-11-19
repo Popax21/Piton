@@ -65,7 +65,7 @@ jobs:
     - name: Build Piton binary
       run: cargo build --verbose --release --target ${{ matrix.target }} ${{ matrix.args }}
 
-    - run: mv target/${{ matrix.target }}/release/${{ startsWith(matrix.os, "windows") && 'piton.exe' || 'piton' }} ${{ matrix.name }}
+    - run: mv target/${{ matrix.target }}/release/${{ startsWith(matrix.os, 'windows') && 'piton.exe' || 'piton' }} ${{ matrix.name }}
   
     - name: Upload Piton binaries
       uses: actions/upload-artifact@v3.1.3
