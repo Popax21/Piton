@@ -202,13 +202,13 @@ extern "system" fn progress_dialog_proc(window_handle: HWND, msg: u32, _msg_para
                 //Set the progress dialog pointer
                 unsafe {
                     SetLastError(ERROR_SUCCESS);
-                    // The signature is different on x86 for some reason
-                    #[cfg(target_pointer_width = 32)]
+                    //The signature is different on x86 for some reason
+                    #[cfg(target_pointer_width = "32")]
                     if SetWindowLongPtrW(window_handle, DWLP_USER, _msg_param2.0 as i32) == 0 {
                         GetLastError().expect("failed to set dialog DialogWindow pointer");
                     }
 
-                    #[cfg(not(target_pointer_width = 32))]
+                    #[cfg(not(target_pointer_width = "32"))]
                     if SetWindowLongPtrW(window_handle, DWLP_USER, _msg_param2.0) == 0 {
                         GetLastError().expect("failed to set dialog DialogWindow pointer");
                     }
