@@ -10,67 +10,77 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          # Windows i686
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            args:
+            name: piton-win_x86.exe
+
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            args: -F gui
+            name: piton-gui-win_x86.exe
+
+          # Windows x64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            args:
+            name: piton-win_x64.exe
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: -F gui
+            name: piton-gui-win_x64.
+
+          # Linux
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            args:
+            name: piton-linux_x64
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            args: -F gui
+            name: piton-gui-
+
+          # MacOS
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            args:
+            name: piton-macos_x64
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            args: -F gui
+            name: piton-gui-macos_x64
+
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
 
-    - name: Build x86 Piton binary
-      run: cargo build --verbose --release --target i686-pc-windows-msvc
-    - run: mv target/i686-pc-windows-msvc/release/piton.exe piton-win_x86.exe
-  
-    - name: Build x64 Piton binary
-      run: cargo build --verbose --release --target x86_64-pc-windows-msvc
-    - run: mv target/x86_64-pc-windows-msvc/release/piton.exe piton-win_x64.exe
+    - name: Build Piton binary
+      run: cargo build --verbose --release --target ${{ matrix.target }} ${{ matrix.args }}
 
+    - run: mv target/${{ matrix.target }}/release/${{ startsWith(matrix.os, "windows") && 'piton.exe' || 'piton' }} ${{ matrix.name }}
+  
     - name: Upload Piton binaries
       uses: actions/upload-artifact@v3.1.3
       with:
         name: piton-binaries
-        path: |
-          piton-win_x86.exe
-          piton-win_x64.exe
-
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build Piton binary
-      run: cargo build --verbose --release --target x86_64-unknown-linux-gnu
-    - run: mv target/x86_64-unknown-linux-gnu/release/piton piton-linux_x64
-    - name: Upload Piton binary
-      uses: actions/upload-artifact@v3.1.3
-      with:
-        name: piton-binaries
-        path: piton-linux_x64
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build Piton binary
-      run: cargo build --verbose --release --target x86_64-apple-darwin
-    - run: mv target/x86_64-apple-darwin/release/piton piton-macos_x64
-    - name: Upload Piton binary
-      uses: actions/upload-artifact@v3.1.3
-      with:
-        name: piton-binaries
-        path: piton-macos_x64
+        path: ${{ matrix.name }}
 
   upload-binaries:
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     needs: 
-      - build-windows
-      - build-linux
-      - build-macos
+      - build
     steps:
       - uses: actions/download-artifact@v2.1.1
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            piton/piton-win_x86.exe
-            piton/piton-win_x64.exe
-            piton/piton-linux_x64
-            piton/piton-macos_x64
+          files: piton-binaries/*
