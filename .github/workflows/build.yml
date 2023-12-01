@@ -70,6 +70,7 @@ jobs:
     - name: Setup Rust target
       uses: actions-rs/toolchain@v1
       with:
+        toolchain: stable
         target: ${{ matrix.target }}
 
     - name: Build Piton binary
