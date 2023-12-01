@@ -38,16 +38,15 @@ jobs:
 
           # Linux
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
+            target: x86_64-unknown-linux-gnu
             args:
             name: piton-linux_x64
-            apt_deps: musl-tools
 
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
+            target: x86_64-unknown-linux-gnu
             args: -F gui
             name: piton-gui-linux_x64
-            apt_deps: libgtk-3-dev musl-tools
+            apt_deps: libgtk-3-dev
 
           # MacOS
           - os: macos-latest
@@ -67,11 +66,6 @@ jobs:
     - name: Install dependencies
       if: ${{ matrix.apt_deps }}
       run: sudo apt-get install -y ${{ matrix.apt_deps }}
-
-    - name: Setup Rust target
-      run: |
-        rustup update
-        rustup target add ${{ matrix.target }}
 
     - name: Build Piton binary
       run: cargo build --verbose --release --target ${{ matrix.target }} ${{ matrix.args }}
