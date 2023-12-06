@@ -44,7 +44,7 @@ jobs:
 
             #https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html
             container: quay.io/pypa/manylinux2014_x86_64
-            cargo: /root/.cargo/bin/cargo
+            cargo: $HOME/.cargo/bin/cargo
 
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
