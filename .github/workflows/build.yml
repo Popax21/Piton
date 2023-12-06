@@ -44,7 +44,7 @@ jobs:
 
             #https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html
             container: quay.io/pypa/manylinux2014_x86_64
-            cargo: /root/.local/bin/cargo
+            cargo: /root/.cargo/bin/cargo
 
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -70,7 +70,7 @@ jobs:
 
     - name: Setup Rust toolchain
       if: ${{ matrix.container }}
-      run:  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
+      run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
 
     - name: Install dependencies
       if: ${{ matrix.apt_deps }}
