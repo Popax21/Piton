@@ -2,7 +2,7 @@
 
 use std::{sync::OnceLock, ops::Deref, error::Error};
 
-use windows::{Win32::{System::LibraryLoader::{GetProcAddress, LoadLibraryA}, Foundation::{BOOL, HWND, HMODULE, FreeLibrary, HANDLE, ERROR_BAD_ARGUMENTS, RECT}, Graphics::Gdi::{HMONITOR, MonitorFromWindow, MONITOR_DEFAULTTONEAREST, GetDC, GetDeviceCaps, LOGPIXELSX, ReleaseDC, LOGPIXELSY}, UI::WindowsAndMessaging::SYSTEM_PARAMETERS_INFO_ACTION}, core::{s, HRESULT}};
+use windows::{Win32::{System::LibraryLoader::{GetProcAddress, LoadLibraryA}, Foundation::{BOOL, HWND, HMODULE, FreeLibrary, HANDLE, ERROR_BAD_ARGUMENTS, ERROR_MOD_NOT_FOUND, RECT}, Graphics::Gdi::{HMONITOR, MonitorFromWindow, MONITOR_DEFAULTTONEAREST, GetDC, GetDeviceCaps, LOGPIXELSX, ReleaseDC, LOGPIXELSY}, UI::WindowsAndMessaging::SYSTEM_PARAMETERS_INFO_ACTION}, core::{s, HRESULT}};
 
 use super::WinError;
 
@@ -220,7 +220,7 @@ macro_rules! gen_dll_binding {
         impl Drop for $type_name {
             fn drop(&mut self) {
                 unsafe {
-                    FreeLibrary(self.1).expect("failed to free library $lib handle on DPI function $fn_name binding drop");
+                    FreeLibrary(self.1).expect(concat!("failed to free library ", stringify!($lib), " handle on DPI function ", stringify!($fn_name), "binding drop"));
                 }
             }
         }
@@ -230,7 +230,16 @@ macro_rules! gen_dll_binding {
                 static FUNC: OnceLock<Option<$type_name>> = OnceLock::new();
                 FUNC.get_or_init(|| {
                     unsafe {
-                        let lib_handle = LoadLibraryA(s!($lib)).expect("couldn't obtain $lib handle");
+                        let lib_handle = match LoadLibraryA(s!($lib)) {
+                            Ok(handle) => handle,
+                            Err(err) => {
+                                if err.code() == ERROR_MOD_NOT_FOUND.to_hresult() {
+                                    return None;
+                                } else {
+                                    panic!(concat!("couldn't obtain ", stringify!($lib), " handle: {err}"))
+                                }
+                            }
+                        };
                         GetProcAddress(lib_handle, s!($fn_name))
                         .map(|fnc| $type_name(std::mem::transmute::<_, $signature>(fnc), lib_handle))
                     }
