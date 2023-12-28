@@ -236,7 +236,7 @@ macro_rules! gen_dll_binding {
                                 if err.code() == ERROR_MOD_NOT_FOUND.to_hresult() {
                                     return None;
                                 } else {
-                                    panic!(concat!("couldn't obtain ", stringify!($lib), " handle: {err}"))
+                                    panic!("couldn't obtain {lib} handle: {err}", lib=stringify!($lib))
                                 }
                             }
                         };
