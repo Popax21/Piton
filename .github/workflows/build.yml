@@ -8,7 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  MACOSX_DEPLOYMENT_TARGET: 10
+  MACOSX_DEPLOYMENT_TARGET: 10.12
 
 jobs:
   build:
