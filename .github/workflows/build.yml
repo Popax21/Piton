@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  MACOSX_DEPLOYMENT_TARGET: 10
 
 jobs:
   build:
@@ -53,12 +54,12 @@ jobs:
             apt_deps: libgtk-3-dev
 
           # MacOS
-          - os: macos-11
+          - os: macos-latest
             target: x86_64-apple-darwin
             args:
             name: piton-macos_x64
 
-          - os: macos-11
+          - os: macos-latest
             target: x86_64-apple-darwin
             args: -F gui
             name: piton-gui-macos_x64
