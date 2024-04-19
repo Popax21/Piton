@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <_PitonPkgFolder>$(MSBuildThisFileDirectory)..</_PitonPkgFolder>
+    </PropertyGroup>
+
+    <!-- Register custom Piton tasks -->
+    <PropertyGroup>
+        <_PitonTasksAssembly>$(_PitonPkgFolder)\tasks\Piton.Tasks.dll</_PitonTasksAssembly>
+    </PropertyGroup>
+
+    <UsingTask TaskName="Piton.ConfigureApphost" AssemblyFile="$(_PitonTasksAssembly)" />
+</Project>

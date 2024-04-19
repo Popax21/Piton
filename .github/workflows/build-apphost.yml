@@ -1,0 +1,100 @@
+name: Build Piton apphost binaries
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  MACOSX_DEPLOYMENT_TARGET: 10.12
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Windows i686
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            args:
+            name: piton-win_x86.exe
+
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            args: -F gui
+            name: piton-gui-win_x86.exe
+
+          # Windows x64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            args:
+            name: piton-win_x64.exe
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: -F gui
+            name: piton-gui-win_x64.exe
+
+          # Linux
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            args:
+            name: piton-linux_x64
+
+            #https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html
+            container: quay.io/pypa/manylinux2014_x86_64
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            args: -F gui
+            name: piton-gui-linux_x64
+            apt_deps: libgtk-3-dev
+
+          # MacOS
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            args:
+            name: piton-macos_x64
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            args: -F gui
+            name: piton-gui-macos_x64
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v3
+    
+      - name: Cache toolchain / dependencies
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            apphost/target/
+          key: ${{ runner.os }}-apphost-cargo-${{ hashFiles('apphost/Cargo.toml') }}
+          restore-keys:
+            ${{ runner.os }}-apphost-cargo-
+
+      - name: Setup Rust toolchain
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
+
+      - name: Install dependencies
+        if: ${{ matrix.apt_deps }}
+        run: sudo apt-get install -y ${{ matrix.apt_deps }}
+
+      - name: Build Piton binary
+        run: ~/.cargo/bin/cargo build --verbose --release --target ${{ matrix.target }} ${{ matrix.args }}
+
+      - run: mv target/${{ matrix.target }}/release/${{ startsWith(matrix.os, 'windows') && 'piton.exe' || 'piton' }} ${{ matrix.name }}
+    
+      - name: Upload Piton binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: apphost-binaries
+          path: ${{ matrix.name }}

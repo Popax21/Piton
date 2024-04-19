@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.Build.NoTargets/3.7.56">
+    <PropertyGroup>
+        <TargetFrameworks>net5.0;net6.0;net7.0;net8.0</TargetFrameworks>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+        <NoWarn>NU5100;NU5128;MSB3245</NoWarn> <!-- Disable irrelevant warnings -->
+
+        <!-- Nuget metadata -->
+        <PackageId>Piton</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Popax21</Authors>
+        <Description>Publish self-contained .NET applications while downloading the runtime on-the-fly</Description>
+    </PropertyGroup>
+
+    <!-- Include MSBuild .props / .target files -->
+    <ItemGroup>
+        <Content Include="build\Piton.props" PackagePath="build\" />
+        <Content Include="build\Piton.targets" PackagePath="build\" />
+    </ItemGroup>
+
+    <Target Name="PackTasksAssembly" BeforeTargets="Build">
+        <!-- Build the MSBuild tasks assembly -->
+        <MSBuild Projects="msbuild/Piton.Tasks.csproj" Properties="Configuration=$(Configuration)">
+            <Output TaskParameter="TargetOutputs" ItemName="PitonTasksAssembly" />
+        </MSBuild>
+
+        <!-- Include it in the packaged .nupkg -->
+        <ItemGroup>
+            <Content Include="@(PitonTasksAssembly)" PackagePath="tasks" />
+        </ItemGroup>
+    </Target>
+</Project>
