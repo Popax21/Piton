@@ -76,9 +76,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             apphost/target/
-          key: ${{ runner.os }}-apphost-cargo-${{ hashFiles('apphost/Cargo.toml') }}
+          key: ${{ runner.os }}-${{ matrix.container }}-apphost-cargo-${{ hashFiles('apphost/Cargo.toml') }}
           restore-keys:
-            ${{ runner.os }}-apphost-cargo-
+            ${{ runner.os }}-${{ matrix.container }}-apphost-cargo-
 
       - name: Setup Rust toolchain
         if: steps.cache.outputs.cache-hit != 'true'
@@ -92,7 +92,7 @@ jobs:
         working-directory: apphost
         run: ~/.cargo/bin/cargo build --verbose --release --target ${{ matrix.target }} ${{ matrix.args }}
 
-      - run: mv target/${{ matrix.target }}/release/${{ startsWith(matrix.os, 'windows') && 'piton.exe' || 'piton' }} ${{ matrix.name }}
+      - run: mv apphost/target/${{ matrix.target }}/release/${{ startsWith(matrix.os, 'windows') && 'piton.exe' || 'piton' }} ${{ matrix.name }}
     
       - name: Upload Piton binaries
         uses: actions/upload-artifact@v4
