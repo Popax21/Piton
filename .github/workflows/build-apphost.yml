@@ -5,8 +5,6 @@ on:
   workflow_dispatch:
 
 env:
-  RUSTUP_HOME: $HOME/.rustup
-  CARGO_HOME: $HOME/.cargo
   CARGO_TERM_COLOR: always
   MACOSX_DEPLOYMENT_TARGET: 10.12
 
@@ -67,6 +65,11 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
+ 
+      - name: Setup environment variables
+        run: |
+          echo "RUSTUP_HOME=$HOME/.rustup" >> "$GITHUB_ENV"
+          echo "CARGO_HOME=$HOME/.cargo" >> "$GITHUB_ENV"
  
       - name: Install dependencies
         if: ${{ matrix.apt_deps }}
