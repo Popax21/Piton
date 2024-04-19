@@ -91,11 +91,9 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
 
-      - run: source ~/.cargo/env
-
       - name: Build Piton binary
         working-directory: apphost
-        run: cargo build --verbose --release --target ${{ matrix.target }} ${{ matrix.args }}
+        run: ~/.cargo/bin/cargo build --verbose --release --target ${{ matrix.target }} ${{ matrix.args }}
 
       - run: mv apphost/target/${{ matrix.target }}/release/${{ startsWith(matrix.os, 'windows') && 'piton.exe' || 'piton' }} ${{ matrix.name }}
     
