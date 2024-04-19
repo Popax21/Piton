@@ -31,14 +31,14 @@ jobs:
 
     needs: check-apphost-cache
     uses: ./.github/workflows/build-apphost.yml
-    if: ${{ !needs.check-apphost-cache.outputs.cache-hit }}
+    if: \!needs.check-apphost-cache.outputs.cache-hit
 
   cache-apphost-binaries:
     name: Cache built apphost binaries
 
     runs-on: ubuntu-latest
     needs: [check-apphost-cache, build-apphost]
-    if: ${{ !needs.check-apphost-cache.outputs.cache-hit }}
+    if: \!needs.check-apphost-cache.outputs.cache-hit
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -48,14 +48,15 @@ jobs:
       - uses: actions/cache/save@v4
         id: cache-check
         with:
-          key: ${{ needs.check-apphost-cache.outputs.cache-key }}
+          key: needs.check-apphost-cache.outputs.cache-key
           path: apphost
 
   build-nugetpkg:
     name: Build Nuget package
 
     runs-on: ubuntu-latest
-    needs: build-apphost
+    needs: [check-apphost-cache, build-apphost]
+    if: needs.check-apphost-cache.outputs.cache-hit || needs.build-apphost.result == 'success'
     steps:
       - uses: actions/checkout@v4
 
