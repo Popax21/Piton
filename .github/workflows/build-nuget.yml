@@ -18,11 +18,12 @@ jobs:
       cache-hit: ${{ steps.cache-check.outputs.cache-hit }}
       cache-key: ${{ steps.cache-check.outputs.cache-primary-key }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache/restore@v3
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
         id: cache-check
         with:
           key: apphost-binaries-${{ hashFiles('apphost') }}
+          path: apphost
           lookup-only: true
 
   build-apphost:
@@ -43,7 +44,7 @@ jobs:
         with:
           name: apphost-binaries
           path: apphost
-      - uses: actions/cache/save@v3
+      - uses: actions/cache/save@v4
         id: cache-check
         with:
           key: ${{ needs.check-apphost-cache.cache-key }}
@@ -51,10 +52,12 @@ jobs:
 
 # >>>>> Build the nuget package <<<<<
   build-nugetpkg:
+    name: Build Nuget package
+
     runs-on: ubuntu-latest
     needs: build-apphost
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
