@@ -5,6 +5,8 @@ on:
   workflow_dispatch:
 
 env:
+  RUSTUP_HOME: ~/.rustup
+  CARGO_HOME: ~/.cargo
   CARGO_TERM_COLOR: always
   MACOSX_DEPLOYMENT_TARGET: 10.12
 
@@ -71,6 +73,7 @@ jobs:
         id: cache
         with:
           path: |
+            ~/.rustup
             ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
@@ -99,3 +102,4 @@ jobs:
         with:
           name: apphost-bin-${{ matrix.name }}
           path: ${{ matrix.name }}
+          if-no-files-found: error
