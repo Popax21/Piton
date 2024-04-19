@@ -1,3 +1,5 @@
+name: Build Piton Nuget package
+
 on:
   push:
     branches:
