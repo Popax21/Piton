@@ -1,4 +1,4 @@
-use std::sync::RwLock;
+use std::{marker::PhantomData, sync::RwLock};
 
 #[macro_export]
 macro_rules! log {
@@ -7,8 +7,8 @@ macro_rules! log {
             let msg = format!($($msg_arg)+);
             let msg = format!("[PITON] {msg}");
 
-            let log_fnc = $crate::ui::log::LOG_FNC.read().unwrap();
-            if let Some(log_fnc) = *log_fnc {
+            let log_guard = $crate::ui::log::LOG_FNC.read().unwrap();
+            if let Some(log_fnc) = *log_guard {
                 log_fnc(&msg);
             } else {
                 println!("{msg}");
@@ -20,7 +20,7 @@ macro_rules! log {
 pub type LogFunc = dyn Fn(&str) + Sync;
 pub static LOG_FNC: RwLock<Option<&LogFunc>> = RwLock::new(None);
 
-pub struct LogHook<'a, F: Fn(&str) + Sync + 'a>(&'a F);
+pub struct LogHook<'a, F: Fn(&str) + Sync + 'a>(PhantomData<&'a F>);
 
 impl<'a, F: Fn(&str) + Sync + 'a> LogHook<'a, F> {
     pub fn create(fnc: &'a F) -> LogHook<'a, F> {
@@ -33,7 +33,7 @@ impl<'a, F: Fn(&str) + Sync + 'a> LogHook<'a, F> {
     
         *log_fnc = Some(unsafe { std::mem::transmute::<&'a (dyn Fn(&str) + Sync), &'static (dyn Fn(&str) + Sync)>(fnc) });
         
-        LogHook(fnc)
+        LogHook(PhantomData)
     }
 }
 
