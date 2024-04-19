@@ -31,14 +31,14 @@ jobs:
 
     needs: check-apphost-cache
     uses: ./.github/workflows/build-apphost.yml
-    if: \!needs.check-apphost-cache.outputs.cache-hit
+    if: needs.check-apphost-cache.outputs.cache-hit != 'true'
 
   cache-apphost-binaries:
     name: Cache built apphost binaries
 
     runs-on: ubuntu-latest
     needs: [check-apphost-cache, build-apphost]
-    if: \!needs.check-apphost-cache.outputs.cache-hit
+    if: needs.check-apphost-cache.outputs.cache-hit != 'true'
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -56,7 +56,7 @@ jobs:
 
     runs-on: ubuntu-latest
     needs: [check-apphost-cache, build-apphost]
-    if: needs.check-apphost-cache.outputs.cache-hit || needs.build-apphost.result == 'success'
+    if: needs.check-apphost-cache.outputs.cache-hit == 'true' || needs.build-apphost.result == 'success'
     steps:
       - uses: actions/checkout@v4
 
