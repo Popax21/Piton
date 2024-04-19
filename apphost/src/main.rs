@@ -80,7 +80,8 @@ fn main() -> ExitCode {
     let install_dir = if !cfg!(feature="testapp") {
         let mut exe_path = std::env::current_exe().unwrap();
         if let Ok(link_exe_path) = std::fs::read_link(&exe_path) {
-            exe_path = link_exe_path
+            exe_path.pop();
+            exe_path.push(link_exe_path);
         }
 
         PathBuf::from(exe_path.parent().unwrap())
