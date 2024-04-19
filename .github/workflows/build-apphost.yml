@@ -91,7 +91,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.container }}-apphost-cargo-
 
       - name: Setup Rust toolchain
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: ${{ !steps.cache.outputs.cache-hit }}
         run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
 
       - name: Build Piton binary
