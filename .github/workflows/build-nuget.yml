@@ -8,8 +8,6 @@ on:
       - main
 
 jobs:
-
-# >>>>> Build / Cache the apphost binaries <<<<<
   check-apphost-cache:
     name: Check apphost binary cache
 
@@ -42,15 +40,15 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: apphost-binaries
+          pattern: apphost-bin-*
           path: apphost
+          merge-multiple: true
       - uses: actions/cache/save@v4
         id: cache-check
         with:
           key: ${{ needs.check-apphost-cache.cache-key }}
           path: apphost
 
-# >>>>> Build the nuget package <<<<<
   build-nugetpkg:
     name: Build Nuget package
 
@@ -62,7 +60,6 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
 
-        # Build / Cache the MSBuild tasks assembly
       - name: Cache Piton MSBuild tasks assembly
         uses: actions/cache@v4
         id: cache-msbuild-tasks
@@ -78,7 +75,6 @@ jobs:
         if: steps.cache-msbuild-tasks.outputs.cache-hit != 'true'
         run: dotnet build -c Release -p:TreatWarningsAsErrors=true msbuild
 
-        # Pack the nuget package
       - name: Pack nuget package
         run: dotnet pack -p:TreatWarningsAsErrors=true --output out
 

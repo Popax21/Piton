@@ -94,8 +94,8 @@ jobs:
 
       - run: mv apphost/target/${{ matrix.target }}/release/${{ startsWith(matrix.os, 'windows') && 'piton.exe' || 'piton' }} ${{ matrix.name }}
     
-      - name: Upload Piton binaries
+      - name: Upload Piton binary
         uses: actions/upload-artifact@v4
         with:
-          name: apphost-binaries
+          name: apphost-bin-${{ matrix.name }}
           path: ${{ matrix.name }}
