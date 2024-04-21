@@ -13,8 +13,8 @@ pub const USE_SYSTEM_RUNTIME: bool = true;
 
 #[allow(unreachable_code)]
 const fn det_default_ui_driver() -> UIDriver {
-    #[cfg(feature = "gui")] return UIDriver::Gui;
-    #[cfg(feature = "cli")] return UIDriver::Cli;
+    #[cfg(feature = "ui-gui")] return UIDriver::Gui;
+    #[cfg(feature = "ui-cli")] return UIDriver::Cli;
     UIDriver::None
 }
 

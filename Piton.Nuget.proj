@@ -1,23 +1,22 @@
 ﻿<Project Sdk="Microsoft.Build.NoTargets/3.7.56">
     <PropertyGroup>
-        <TargetFrameworks>net5.0;net6.0;net7.0;net8.0</TargetFrameworks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-
         <NoWarn>NU5100;NU5128;MSB3245</NoWarn> <!-- Disable irrelevant warnings -->
 
         <!-- Nuget metadata -->
         <PackageId>Piton</PackageId>
         <Version>1.0.0</Version>
         <Authors>Popax21</Authors>
+        <TargetFramework>net5.0</TargetFramework>
         <Description>Publish self-contained .NET applications while downloading the runtime on-the-fly</Description>
     </PropertyGroup>
 
     <!-- Include MSBuild .props / .target files -->
     <ItemGroup>
-        <Content Include="build\Piton.props" PackagePath="build\" />
-        <Content Include="build\Piton.targets" PackagePath="build\" />
+        <Content Include="build/" PackagePath="build/" />
     </ItemGroup>
 
+    <!-- Build + Include custom MSBuild tasks -->
     <Target Name="PackTasksAssembly" BeforeTargets="Build">
         <!-- Build the MSBuild tasks assembly -->
         <MSBuild Projects="msbuild/Piton.Tasks.csproj" Properties="Configuration=$(Configuration)">
@@ -28,5 +27,43 @@
         <ItemGroup>
             <Content Include="@(PitonTasksAssembly)" PackagePath="tasks" />
         </ItemGroup>
+    </Target>
+
+    <!-- Include apphost binaries -->
+    <Target Name="PackAppHostBinaries" BeforeTargets="Build">
+        <ItemGroup>
+            <PitonBaseTargets Include="win_x86" ExecSuffix=".exe" />
+            <PitonBaseTargets Include="win_x64" ExecSuffix=".exe" />
+            <PitonBaseTargets Include="linux_x64" />
+            <PitonBaseTargets Include="macos_x64" />
+
+            <PitonUIDrivers Include="none" />
+            <PitonUIDrivers Include="cli" />
+            <PitonUIDrivers Include="gui" />
+
+            <PitonTargets Include="@(PitonBaseTargets)" UIDriver="%(PitonUIDrivers.Identity)" />
+        </ItemGroup>
+
+        <!-- Resolve apphost binary paths -->
+        <Error Text="No apphost binary directory given! Use the PitonAppHostBinDir MSBuild property to do so." Condition="'$(PitonAppHostBinDir)' == ''" />
+
+        <ItemGroup>
+            <_PitonAppHostBinRaw
+                Include="$(PitonAppHostBinDir)/piton-%(PitonTargets.Identity)-%(PitonTargets.UIDriver)%(PitonTargets.ExecSuffix)"
+                OSTarget="%(PitonTargets.Identity)"
+                UIDriver="%(PitonTargets.UIDriver)"
+            />
+            <_PitonAppHostBin Include="@(_PitonAppHostBinRaw->Exists())" />
+        </ItemGroup>
+        <Error Text="No apphost binaries present in PitonAppHostBinDir '$(PitonAppHostBinDir)'!" Condition="@(_PitonAppHostBin->Count()) == 0" />
+
+        <!-- Include them in the packaged .nupkg -->
+        <ItemGroup>
+            <Content Include="@(_PitonAppHostBin)" PackagePath="apphost" />
+        </ItemGroup>
+    </Target>
+
+    <Target Name="PrintSupportedTargets" AfterTargets="PackAppHostBinaries">
+        <Message Text=" - supported UI drivers for target %(_PitonAppHostBin.OSTarget): @(_PitonAppHostBin->Metadata('UIDriver'), ', ')" Importance="high" />
     </Target>
 </Project>

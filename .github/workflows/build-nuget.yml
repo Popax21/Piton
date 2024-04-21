@@ -43,7 +43,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: apphost-bin-*
-          path: apphost
+          path: apphost-bin
           merge-multiple: true
       - uses: actions/cache/save@v4
         id: cache-check
@@ -78,8 +78,15 @@ jobs:
         if: ${{ !steps.cache-msbuild-tasks.outputs.cache-hit }}
         run: dotnet build -c Release -p:TreatWarningsAsErrors=true msbuild
 
-      - name: Pack nuget package
-        run: dotnet pack -p:TreatWarningsAsErrors=true --output out Piton.Nuget.proj
+      - name: Download Piton apphost binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: apphost-bin-*
+          path: apphost-bin
+          merge-multiple: true
+
+      - name: Pack Nuget package
+        run: dotnet pack -p:TreatWarningsAsErrors=true -p:PitonAppHostBinDir=apphost-bin --output out Piton.Nuget.proj
 
       - uses: actions/upload-artifact@v4
         with:

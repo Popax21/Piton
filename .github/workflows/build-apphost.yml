@@ -12,54 +12,41 @@ jobs:
   build:
     strategy:
       matrix:
-        include:
-          # Windows i686
+        ui:
+          - none
+          - cli
+          - gui
+
+        targets:
           - os: windows-latest
             target: i686-pc-windows-msvc
-            args:
-            name: piton-win_x86.exe
-
-          - os: windows-latest
-            target: i686-pc-windows-msvc
-            args: -F gui
-            name: piton-gui-win_x86.exe
-
-          # Windows x64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            args:
-            name: piton-win_x64.exe
+            target_name: win_x86
+            exec_suffix: .exe
 
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            args: -F gui
-            name: piton-gui-win_x64.exe
+            target_name: win_64
+            exec_suffix: .exe
 
-          # Linux
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            args:
-            name: piton-linux_x64
+            target_name: linux_x64
 
             #https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html
             container: quay.io/pypa/manylinux_2_28_x86_64
 
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            args: -F gui
-            name: piton-gui-linux_x64
-            apt_deps: libgtk-3-dev
-
-          # MacOS
           - os: macos-latest
             target: x86_64-apple-darwin
+            target_name: macos_x64
+
             args:
-            name: piton-macos_x64
+            name: piton-linux_x64
 
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            args: -F gui
-            name: piton-gui-macos_x64
+        include: 
+          # Linux GUI support needs libgtk-3-dev to be installed
+          - target_name: linux_x64
+            ui: gui
+            apt_deps: libgtk-3-dev
 
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
@@ -96,13 +83,13 @@ jobs:
 
       - name: Build Piton binary
         working-directory: apphost
-        run: ~/.cargo/bin/cargo build --verbose --release --target ${{ matrix.target }} ${{ matrix.args }}
+        run: ~/.cargo/bin/cargo build --verbose --release --target ${{ matrix.target }} -F ui-${{ matrix.ui }}
 
-      - run: mv apphost/target/${{ matrix.target }}/release/${{ startsWith(matrix.os, 'windows') && 'piton.exe' || 'piton' }} ${{ matrix.name }}
-    
+      - run: mv apphost/target/${{ matrix.target }}/release/piton${{ matrix.exec_suffix }} piton-${{ matrix.target_name }}-${{ matrix.ui }}${{ matrix.exec_suffix }}
+
       - name: Upload Piton binary
         uses: actions/upload-artifact@v4
         with:
-          name: apphost-bin-${{ matrix.name }}
-          path: ${{ matrix.name }}
+          name: apphost-${{ matrix.target_name }}-${{ matrix.ui }}
+          path: piton-${{ matrix.target_name }}-${{ matrix.ui }}${{ matrix.exec_suffix }}
           if-no-files-found: error

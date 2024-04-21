@@ -61,7 +61,7 @@ macro_rules! run_app_binary {
 
 fn main() -> ExitCode {
     //Handle PITON_WIN_CONSOLE on Windows
-    #[cfg(all(target_os = "windows", feature = "gui"))]
+    #[cfg(all(target_os = "windows", feature = "ui-gui"))]
     if let Ok(console_env) = std::env::var("PITON_WIN_CONSOLE") {
         unsafe {
             match console_env.as_str() {

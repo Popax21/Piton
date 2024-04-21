@@ -2,23 +2,21 @@ use std::error::Error;
 
 use crate::cfg::UI_DRIVER;
 
-#[cfg(not(any(feature = "gui", feature = "cli")))]
-compile_error!("either feature \"cli\" or feature \"gui\" (or both) has to be enabled");
-
-#[cfg(feature = "cli")] mod cli;
-#[cfg(feature = "gui")] mod gui;
+#[cfg(feature = "ui-cli")] mod cli;
+#[cfg(feature = "ui-gui")] mod gui;
 
 pub mod log;
 
 #[derive(serde::Deserialize)]
 pub enum UIDriver {
+    #[serde(rename = "none")]
     None,
 
-    #[cfg(feature = "cli")]
+    #[cfg(feature = "ui-cli")]
     #[serde(rename = "cli")]
     Cli,
 
-    #[cfg(feature = "gui")]
+    #[cfg(feature = "ui-gui")]
     #[serde(rename = "gui")]
     Gui
 }
@@ -40,17 +38,17 @@ pub fn run_progress_action<T: Send>(descr: &str, action: impl FnOnce(&dyn Progre
             Ok(Some(action(&NoOpProgressAction{})))
         }
         
-        #[cfg(feature = "cli")]
+        #[cfg(feature = "ui-cli")]
         UIDriver::Cli => cli::run_progress_action(descr, move |act| action(act)),
 
-        #[cfg(feature = "gui")]
+        #[cfg(feature = "ui-gui")]
         UIDriver::Gui => gui::run_progress_action(descr, move |act| action(act))
     }
 }
 
 pub fn show_error_msg(msg: &str) {
     match UI_DRIVER {
-        #[cfg(feature = "gui")]
+        #[cfg(feature = "ui-gui")]
         UIDriver::Gui => gui::show_error_msgbox(msg).expect("failed to show the error message box"),
 
         _ => eprintln!("{msg}")

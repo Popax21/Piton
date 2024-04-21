@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["cli"]
-cli = ["dep:indicatif"]
-gui = ["dep:gtk", "dep:windows", "dep:objc", "dep:cacao"]
+default = ["ui-cli"]
+ui-none = [] # This feature does nothing, since no UI support is always enabled - it's just there as a placeholder for CI
+ui-cli = ["dep:indicatif"]
+ui-gui = ["dep:gtk", "dep:windows", "dep:objc", "dep:cacao"]
 testapp = []
 
 [dependencies]
