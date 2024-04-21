@@ -3,7 +3,7 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <NoWarn>NU5100;NU5128;MSB3245</NoWarn> <!-- Disable irrelevant warnings -->
 
-        <!-- Nuget metadata -->
+        <!-- NuGet metadata -->
         <PackageId>Piton</PackageId>
         <Version>1.0.0</Version>
         <Authors>Popax21</Authors>
