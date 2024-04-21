@@ -22,7 +22,7 @@ jobs:
       - uses: actions/cache/restore@v4
         id: cache-check
         with:
-          key: apphost-binaries-${{ hashFiles('apphost') }}
+          key: apphost-binaries-${{ hashFiles('apphost', '.github/workflows/build-apphost.yml') }}
           path: apphost
           lookup-only: true
 
