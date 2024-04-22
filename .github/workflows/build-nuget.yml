@@ -23,7 +23,7 @@ jobs:
         id: cache-check
         with:
           key: apphost-binaries-${{ hashFiles('apphost', '.github/workflows/build-apphost.yml') }}
-          path: apphost
+          path: apphost-bin
           lookup-only: true
 
   build-apphost:
@@ -64,11 +64,12 @@ jobs:
         uses: actions/setup-dotnet@v4
 
       - name: Download Piton apphost binaries
-        uses: actions/download-artifact@v4
+        uses: actions/cache/restore@v4
+        id: cache-check
         with:
-          pattern: apphost-*
+          key: ${{ needs.check-apphost-cache.outputs.cache-key }}
           path: apphost-bin
-          merge-multiple: true
+          fail-on-cache-miss: true
 
       - name: Pack NuGet package
         run: dotnet pack -p:TreatWarningsAsErrors=true -p:PitonAppHostBinDir=apphost-bin --output out Piton.NuGet.proj

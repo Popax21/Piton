@@ -31,7 +31,7 @@
     </Target>
 
     <!-- Include apphost binaries -->
-    <Target Name="PackAppHostBinaries" BeforeTargets="Pack">
+    <Target Name="PackAppHostBinaries" BeforeTargets="Build">
         <ItemGroup>
             <PitonBaseTargets Include="win_x86" ExecSuffix=".exe" />
             <PitonBaseTargets Include="win_x64" ExecSuffix=".exe" />
@@ -56,7 +56,7 @@
             />
             <_PitonAppHostBin Include="@(_PitonAppHostBinRaw->Exists())" />
         </ItemGroup>
-        <!-- <Error Text="No apphost binaries present in PitonAppHostBinDir '$(PitonAppHostBinDir)'!" Condition="@(_PitonAppHostBin->Count()) == 0" /> -->
+        <Error Text="No apphost binaries present in PitonAppHostBinDir '$(PitonAppHostBinDir)'!" Condition="@(_PitonAppHostBin->Count()) == 0" />
 
         <!-- Include them in the packaged .nupkg -->
         <ItemGroup>
