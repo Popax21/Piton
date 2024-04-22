@@ -19,7 +19,7 @@
     <!-- Build + Include custom MSBuild tasks -->
     <Target Name="PackTasksAssembly" BeforeTargets="Pack">
         <!-- Build the MSBuild tasks assembly -->
-        <MSBuild Projects="msbuild/Piton.Tasks.csproj" Properties="Configuration=$(Configuration)">
+        <MSBuild Projects="../msbuild/Piton.Tasks.csproj" Properties="Configuration=$(Configuration)">
             <Output TaskParameter="TargetOutputs" ItemName="PitonTasksAssembly" />
         </MSBuild>
 
