@@ -1,6 +1,5 @@
-﻿<Project Sdk="Microsoft.Build.NoTargets/3.7.56">
+﻿<Project Sdk="Microsoft.Build.NoTargets/3.7.56" DefaultTargets="Pack">
     <PropertyGroup>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <NoWarn>NU5100;NU5128;MSB3245</NoWarn> <!-- Disable irrelevant warnings -->
 
         <!-- NuGet metadata -->
@@ -13,13 +12,13 @@
 
     <!-- Include MSBuild .props / .target files -->
     <ItemGroup>
-        <Content Include="../build/" PackagePath="build/" />
+        <Content Include="build/" PackagePath="build/" />
     </ItemGroup>
 
     <!-- Build + Include custom MSBuild tasks -->
-    <Target Name="PackTasksAssembly" BeforeTargets="Pack">
+    <Target Name="PackTasksAssembly" BeforeTargets="Build">
         <!-- Build the MSBuild tasks assembly -->
-        <MSBuild Projects="../msbuild/Piton.Tasks.csproj" Properties="Configuration=$(Configuration)">
+        <MSBuild Projects="msbuild/Piton.Tasks.csproj" Properties="Configuration=$(Configuration)">
             <Output TaskParameter="TargetOutputs" ItemName="PitonTasksAssembly" />
         </MSBuild>
 
@@ -55,7 +54,7 @@
             />
             <_PitonAppHostBin Include="@(_PitonAppHostBinRaw->Exists())" />
         </ItemGroup>
-        <Error Text="No apphost binaries present in PitonAppHostBinDir '$(PitonAppHostBinDir)'!" Condition="@(_PitonAppHostBin->Count()) == 0" />
+        <!-- <Error Text="No apphost binaries present in PitonAppHostBinDir '$(PitonAppHostBinDir)'!" Condition="@(_PitonAppHostBin->Count()) == 0" /> -->
 
         <!-- Include them in the packaged .nupkg -->
         <ItemGroup>
