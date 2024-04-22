@@ -40,9 +40,10 @@ jobs:
 
         include: 
           # Linux GUI support needs libgtk-3-dev to be installed
-          - target.name: linux_x64
+          - target:
+              name: linux_x64
+              apt_deps: libgtk-3-dev
             ui: gui
-            apt_deps: libgtk-3-dev
 
     runs-on: ${{ matrix.target.os }}
     container: ${{ matrix.target.container }}
@@ -55,8 +56,8 @@ jobs:
           echo "CARGO_HOME=$HOME/.cargo" >> "$GITHUB_ENV"
  
       - name: Install dependencies
-        if: ${{ matrix.apt_deps }}
-        run: sudo apt-get install -y ${{ matrix.apt_deps }}
+        if: ${{ matrix.target.apt_deps }}
+        run: sudo apt-get install -y ${{ matrix.target.apt_deps }}
 
       - name: Cache toolchain / dependencies
         uses: actions/cache@v4
