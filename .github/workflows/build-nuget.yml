@@ -48,7 +48,7 @@ jobs:
       - uses: actions/cache/save@v4
         id: cache-check
         with:
-          key: needs.check-apphost-cache.outputs.cache-key
+          key: ${{ needs.check-apphost-cache.outputs.cache-key }}
           path: apphost-bin
 
   build-nugetpkg:
@@ -71,7 +71,7 @@ jobs:
           merge-multiple: true
 
       - name: Pack NuGet package
-        run: dotnet pack -p:TreatWarningsAsErrors=true -p:PitonAppHostBinDir=apphost-bin --output out nuget
+        run: dotnet msbuild -p:TreatWarningsAsErrors=true -p:PitonAppHostBinDir=apphost-bin -p:OutputPath=out Piton.NuGet.proj
 
       - uses: actions/upload-artifact@v4
         with:
