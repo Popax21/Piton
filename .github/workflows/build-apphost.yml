@@ -70,7 +70,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             apphost/target/
-          key: ${{ runner.os }}-${{ runner.container }}-apphost-cargo-${{ hashFiles('apphost/Cargo.toml') }}
+          key: ${{ runner.os }}-${{ runner.container }}-apphost-${{ matrix.ui }}-cargo-${{ hashFiles('apphost/Cargo.toml') }}
           restore-keys:
             ${{ runner.os }}-${{ runner.container }}-apphost-cargo-
 
