@@ -42,14 +42,14 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: apphost-bin-*
+          pattern: apphost-*
           path: apphost-bin
           merge-multiple: true
       - uses: actions/cache/save@v4
         id: cache-check
         with:
           key: needs.check-apphost-cache.outputs.cache-key
-          path: apphost
+          path: apphost-bin
 
   build-nugetpkg:
     name: Build NuGet package
