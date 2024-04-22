@@ -63,21 +63,6 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
 
-      - name: Cache Piton MSBuild tasks assembly
-        uses: actions/cache@v4
-        id: cache-msbuild-tasks
-        with:
-          path: |
-            msbuild/bin
-            msbuild/obj
-          key: piton-msbuild-tasks-${{ hashFiles('msbuild') }}
-          restore-keys: |
-            piton-msbuild-tasks-
-
-      - name: Build Piton MSBuild tasks
-        if: ${{ !steps.cache-msbuild-tasks.outputs.cache-hit }}
-        run: dotnet build -c Release -p:TreatWarningsAsErrors=true msbuild
-
       - name: Download Piton apphost binaries
         uses: actions/download-artifact@v4
         with:
