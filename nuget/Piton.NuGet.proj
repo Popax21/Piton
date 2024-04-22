@@ -13,7 +13,7 @@
 
     <!-- Include MSBuild .props / .target files -->
     <ItemGroup>
-        <Content Include="build/" PackagePath="build/" />
+        <Content Include="../build/" PackagePath="build/" />
     </ItemGroup>
 
     <!-- Build + Include custom MSBuild tasks -->
