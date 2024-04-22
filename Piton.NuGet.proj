@@ -16,13 +16,15 @@
     </ItemGroup>
 
     <!-- Build + Include custom MSBuild tasks -->
+    <ItemGroup>
+        <ProjectReference Include="msbuild/Piton.Tasks.csproj" />
+    </ItemGroup>
+
     <Target Name="PackTasksAssembly" BeforeTargets="Build">
-        <!-- Build the MSBuild tasks assembly -->
-        <MSBuild Projects="msbuild/Piton.Tasks.csproj" Properties="Configuration=$(Configuration)">
+        <!-- Include it in the packaged .nupkg -->
+        <MSBuild Projects="msbuild/Piton.Tasks.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
             <Output TaskParameter="TargetOutputs" ItemName="PitonTasksAssembly" />
         </MSBuild>
-
-        <!-- Include it in the packaged .nupkg -->
         <ItemGroup>
             <Content Include="@(PitonTasksAssembly)" PackagePath="tasks" />
         </ItemGroup>
