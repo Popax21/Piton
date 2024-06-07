@@ -6,7 +6,7 @@
         <PackageId>Piton</PackageId>
         <Version>1.0.0</Version>
         <Authors>Popax21</Authors>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework> <!-- This is pretty much just for MSBuild version compatibility checking -->
         <Description>Publish self-contained .NET applications while downloading the runtime on-the-fly</Description>
     </PropertyGroup>
 
