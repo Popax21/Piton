@@ -30,8 +30,12 @@ jobs:
             container: quay.io/pypa/manylinux_2_28_x86_64 #https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html
 
           - name: macos_x64
-            os: macos-latest
+            os: macos-13
             target: x86_64-apple-darwin
+
+          - name: macos_arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
 
         ui:
           - none

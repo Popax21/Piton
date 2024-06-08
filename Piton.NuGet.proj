@@ -37,6 +37,7 @@
             <PitonBaseTargets Include="win_x64" ExecSuffix=".exe" />
             <PitonBaseTargets Include="linux_x64" />
             <PitonBaseTargets Include="macos_x64" />
+            <PitonBaseTargets Include="macos_arm64" />
 
             <PitonUIDrivers Include="none" />
             <PitonUIDrivers Include="cli" />
