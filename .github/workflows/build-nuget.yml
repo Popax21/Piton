@@ -63,9 +63,18 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
 
-      - name: Download Piton apphost binaries
+      - name: Download Piton apphost binaries (artifact)
+        uses: actions/download-artifact@v4
+        if: ${{ !needs.check-apphost-cache.outputs.cache-hit }}
+        with:
+          pattern: apphost-*
+          path: apphost-bin
+          merge-multiple: true
+
+      - name: Download Piton apphost binaries (cache)
         uses: actions/cache/restore@v4
         id: cache-check
+        if: ${{ needs.check-apphost-cache.outputs.cache-hit }}
         with:
           key: ${{ needs.check-apphost-cache.outputs.cache-key }}
           path: apphost-bin
