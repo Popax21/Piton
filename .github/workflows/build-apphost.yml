@@ -16,25 +16,30 @@ jobs:
         target:
           - name: win_x86
             os: windows-latest
+            toolchain: 1.77.0-x86_64-pc-windows-msvc # Last version to support Windows 7
             target: i686-pc-windows-msvc
             exec_suffix: .exe
 
           - name: win_x64
             os: windows-latest
+            toolchain: 1.77.0-x86_64-pc-windows-msvc # Last version to support Windows 7
             target: x86_64-pc-windows-msvc
             exec_suffix: .exe
 
           - name: linux_x64
             os: ubuntu-latest
+            toolchain: stable-x86_64-unknown-linux-gnu
             target: x86_64-unknown-linux-gnu
             container: quay.io/pypa/manylinux_2_28_x86_64 #https://kobzol.github.io/rust/ci/2021/05/07/building-rust-binaries-in-ci-that-work-with-older-glibc.html
 
           - name: macos_x64
             os: macos-13
+            toolchain: stable-x86_64-apple-darwin
             target: x86_64-apple-darwin
 
           - name: macos_arm64
             os: macos-latest
+            toolchain: stable-x86_64-apple-darwin
             target: aarch64-apple-darwin
 
         ui:
@@ -74,13 +79,13 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             apphost/target/
-          key: ${{ runner.os }}-${{ runner.container }}-apphost-${{ matrix.ui }}-cargo-${{ hashFiles('apphost/Cargo.toml') }}
+          key: ${{ matrix.target.target }}-apphost-${{ matrix.ui }}-cargo-${{ hashFiles('apphost/Cargo.toml') }}
           restore-keys:
-            ${{ runner.os }}-${{ runner.container }}-apphost-cargo-
+            ${{ matrix.target.target }}-apphost-${{ matrix.ui }}-cargo-
 
       - name: Setup Rust toolchain
         if: ${{ !steps.cache.outputs.cache-hit }}
-        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal --default-toolchain ${{ matrix.target.toolchain }} --target ${{ matrix.target.target }} -y
 
       - name: Build Piton binary
         working-directory: apphost
