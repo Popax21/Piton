@@ -145,8 +145,9 @@ pub fn launch_app_binary(runtime_dir: Option<&Path>, app_info: &AppInfo) -> Resu
     let args: Vec<PdCString> = env::args_os().map(PdCString::from_os_str).collect::<Result<_, _>>()?;
     let app_path = PdCString::from_os_str(app_info.app_path.as_os_str())?;
 
-    //Apply required setup or hacks
-    prelaunch_setup();
+    //Apply required fixes
+    #[cfg(unix)]
+    unix::fixup_signal_handling();
 
     let res = unsafe {
         let args = args.iter().map(|s| s.as_ptr()).collect::<Vec<_>>();
@@ -170,32 +171,24 @@ pub fn launch_app_binary(runtime_dir: Option<&Path>, app_info: &AppInfo) -> Resu
 
 
 #[cfg(unix)]
-use libc::{sigaction, SIGSEGV, SIG_DFL, sigaltstack, stack_t, SS_DISABLE};
+mod unix {
+    use libc::{sigaction, SIGSEGV, SIG_DFL, sigaltstack, stack_t, SS_DISABLE};
 
-#[cfg(unix)]
-use std::{mem, ptr};
+    use std::{mem, ptr};
+    //On Unix it is required for us to manually remove the registered signal handler altstack in order to have a stable runtime. 
+    //This is due to rust registering a tiny altstack and then the runtime rolling with it, which causes it to overflow it when allocating a large structure.
+    //See https://github.com/dotnet/runtime/issues/115438 for more details.
+    pub fn fixup_signal_handling() {
+        //Removing the SIGSEGV handler is not strictly required, but since we are messing with the
+        //altstack we also reset it to the default, for safety
 
-#[cfg(unix)]
-fn prelaunch_setup() {
-    //On Unix it is required for us to manually remove the registered signal handler altstack
-    //in order to have a stable runtime, this is due to rust registering a tiny altstack
-    //and then the runtime rolling with it, which causes it to overflow it when allocating a large
-    //structure, see https://github.com/dotnet/runtime/issues/115438 for more details
+        let mut action: sigaction = unsafe { mem::zeroed() };
+        action.sa_sigaction = SIG_DFL;
+        unsafe { sigaction(SIGSEGV, &action, ptr::null_mut()) };
 
-    //Removing the SIGSEGV handler is not strictly required, but since we are messing with the
-    //altstack we also reset it to the default, for safety
-
-    let mut action: sigaction = unsafe { mem::zeroed() };
-    action.sa_sigaction = SIG_DFL;
-    unsafe { sigaction(SIGSEGV, &action, ptr::null_mut()) };
-
-    let mut altstack: stack_t = unsafe { mem::zeroed() };
-    altstack.ss_flags = SS_DISABLE;
-    unsafe { sigaltstack(&altstack, ptr::null_mut()) };
-}
-
-#[cfg(not(unix))]
-fn prelaunch_setup() {
-    //There are not hackfixes needed yet for not(unix)
+        let mut altstack: stack_t = unsafe { mem::zeroed() };
+        altstack.ss_flags = SS_DISABLE;
+        unsafe { sigaltstack(&altstack, ptr::null_mut()) };
+    }
 }
 
