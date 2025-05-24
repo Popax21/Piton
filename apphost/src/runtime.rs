@@ -169,18 +169,16 @@ pub fn launch_app_binary(runtime_dir: Option<&Path>, app_info: &AppInfo) -> Resu
     }
 }
 
-
 #[cfg(unix)]
 mod unix {
-    use libc::{sigaction, SIGSEGV, SIG_DFL, sigaltstack, stack_t, SS_DISABLE};
-
+    use libc::{sigaction, sigaltstack, stack_t, SIGSEGV, SIG_DFL, SS_DISABLE};
     use std::{mem, ptr};
-    //On Unix it is required for us to manually remove the registered signal handler altstack in order to have a stable runtime. 
+
+    //On Unix it is required for us to manually remove the registered signal handler altstack in order to have a stable runtime.
     //This is due to rust registering a tiny altstack and then the runtime rolling with it, which causes it to overflow it when allocating a large structure.
     //See https://github.com/dotnet/runtime/issues/115438 for more details.
     pub fn fixup_signal_handling() {
-        //Removing the SIGSEGV handler is not strictly required, but since we are messing with the
-        //altstack we also reset it to the default, for safety
+        //Removing the SIGSEGV handler is not strictly required, but since we are messing with the altstack we also reset it to the default, for safety
 
         let mut action: sigaction = unsafe { mem::zeroed() };
         action.sa_sigaction = SIG_DFL;
