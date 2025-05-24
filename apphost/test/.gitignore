@@ -1,1 +1,6 @@
 piton-runtime
+*.deps.json
+*.dll
+*.pdb
+*.runtimeconfig.json
+obj/
